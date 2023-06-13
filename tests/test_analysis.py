@@ -1,11 +1,28 @@
 import unittest
 from random import Random
 
-from assignment import PDAssignment, HOPAssignment, RandomAssignment, clear_assignment
+from assignment import PDAssignment, HOPAssignment, RandomAssignment, clear_assignment, repr_deadlines
 from model import *
 from examples import *
-from analysis import HolisticFPAnalyis, JosephPandyaAnalysis, repr_wcrts
+from analysis import HolisticFPAnalysis, JosephPandyaAnalysis, HolisticGlobalEDFAnalysis, repr_wcrts
 from generator import generate_system
+
+
+class HolisticGlobalEDFAnalysisTest(unittest.TestCase):
+    def test_edf_analysis(self):
+        system = get_palencia_system()
+        flow1 = system['flow1']
+        flow2 = system['flow2']
+        cpu1 = next((p for p in system.processors if p.name == "cpu1"), None)
+        cpu2 = next((p for p in system.processors if p.name == "cpu2"), None)
+        network = next((p for p in system.processors if p.name == "network"), None)
+
+        analysis = HolisticGlobalEDFAnalysis()
+        pd = PDAssignment(globalize=True)
+        system.apply(pd)
+        system.apply(analysis)
+        print(repr_deadlines(system))
+        print(repr_wcrts(system))
 
 
 class HolisticTest(unittest.TestCase):
@@ -18,7 +35,7 @@ class HolisticTest(unittest.TestCase):
         network = next((p for p in system.processors if p.name == "network"), None)
 
         # analyze
-        system.apply(HolisticFPAnalyis())
+        system.apply(HolisticFPAnalysis())
 
         #
         self.assertEqual(flow1.wcrt, 42)
@@ -36,8 +53,8 @@ class HolisticTest(unittest.TestCase):
     def test_random(self):
         random = Random(10)
         pd = PDAssignment()
-        holistic = HolisticFPAnalyis()
-        hopa = HOPAssignment(analysis=HolisticFPAnalyis(reset=False), over_iterations=10, verbose=True)
+        holistic = HolisticFPAnalysis()
+        hopa = HOPAssignment(analysis=HolisticFPAnalysis(reset=False), over_iterations=10, verbose=True)
 
         utilization = 0.85
         system = generate_system(random,

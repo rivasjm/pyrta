@@ -8,7 +8,7 @@ def calculate_priorities(system) -> bool:
     changed = False
     for processor in system.processors:
         tasks = sorted(processor.tasks,
-                       key=lambda task: task.local_deadline,
+                       key=lambda task: task.deadline,
                        reverse=True)
         for i, task in enumerate(tasks):
             if not changed and task.priority != i + 1:
@@ -17,10 +17,19 @@ def calculate_priorities(system) -> bool:
     return changed
 
 
+def globalize_deadlines(system: System):
+    for flow in system.flows:
+        tasks = flow.tasks
+        if len(tasks) <= 1:
+            continue
+        for i, task in enumerate(tasks[1:]):
+            task.deadline += tasks[i-1].deadline
+
+
 def clear_assignment(system):
     for t in system.tasks:
         t.priority = 1
-        t.local_deadline = None
+        t.deadline = None
 
 
 def normalize_priorities(system):
@@ -30,11 +39,11 @@ def normalize_priorities(system):
 
 
 def save_assignment(system: System):
-    save_attrs(system.tasks, ["priority", "local_deadline"])
+    save_attrs(system.tasks, ["priority", "deadline"])
 
 
 def restore_assignment(system: System):
-    restore_attrs(system.tasks, ["priority", "local_deadline"])
+    restore_attrs(system.tasks, ["priority", "deadline"])
 
 
 class PassthroughAssignment:
@@ -61,13 +70,16 @@ class RandomAssignment:
 
 
 class PDAssignment:
-    def __init__(self, normalize=False):
+    def __init__(self, normalize=False, globalize=False):
         self.normalize = normalize
+        self.globalize = globalize
         self.exec_time = ExecTime()
 
     def apply(self, system: System):
         self.exec_time.init()
-        PDAssignment.calculate_local_deadlines(system)
+        self.calculate_local_deadlines(system)
+        if self.globalize:
+            globalize_deadlines(system)
         calculate_priorities(system)
         if self.normalize:
             normalize_priorities(system)
@@ -79,7 +91,7 @@ class PDAssignment:
             sum_wcet = sum(map(lambda t: t.wcet, flow.tasks))
             for task in flow:
                 d = task.wcet * flow.deadline / sum_wcet
-                task.local_deadline = d
+                task.deadline = d
 
 
 class HOPAssignment:
@@ -188,11 +200,11 @@ class HOPAssignment:
         mex_pr = task.flow.system.mex_pr
         second = 1 + task.processor.excess/(kr * mex_pr) if kr * mex_pr != 0 else sys.float_info.max
         third = 1 + task.excess/(ka * task.flow.excess) if ka * task.flow.excess != 0 else sys.float_info.max
-        task.local_deadline = task.local_deadline * second * third
+        task.deadline = task.deadline * second * third
 
     @staticmethod
     def save_task_excess(task: Task):
-        d = task.local_deadline
+        d = task.deadline
         e = 0
         if d <= task.period:
             e = (task.wcrt-d)*task.flow.wcrt/task.flow.deadline
@@ -227,9 +239,9 @@ class HOPAssignment:
     @staticmethod
     def adjust_local_deadlines(system: System):
         for flow in system.flows:
-            d_sum = sum([task.local_deadline for task in flow])
+            d_sum = sum([task.deadline for task in flow])
             for task in flow:
-                task.local_deadline = task.local_deadline * flow.deadline / d_sum
+                task.deadline = task.deadline * flow.deadline / d_sum
 
     @staticmethod
     def clean_response_times(system):
@@ -321,3 +333,19 @@ def random_priority_jump(system: System, random=Random()):
     while b == a:
         b = random.randint(0, len(tasks) - 1)
     tasks[a].priority, tasks[b].priority = tasks[b].priority, tasks[a].priority
+
+
+def repr_priorities(system: System) -> str:
+    msg = ""
+    for flow in system.flows:
+        ts = " ".join(map(lambda t: f"{t.priority:.2f}", flow.tasks))
+        msg += f"{flow.period}: {ts} : {flow.deadline}\n"
+    return msg
+
+
+def repr_deadlines(system: System) -> str:
+    msg = ""
+    for flow in system.flows:
+        ts = " ".join(map(lambda t: f"{t.deadline:.2f}", flow.tasks))
+        msg += f"{flow.period}: {ts} : {flow.deadline}\n"
+    return msg

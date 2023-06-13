@@ -17,7 +17,7 @@ class HolisticGlobalEDFAnalysis:
         if math.isclose(length, l_prev):
             return length
         else:
-            self._longest_busy_period(proc, length)
+            return self._longest_busy_period(proc, length)
 
     def _set_psi(self, proc: Processor, busy_period: float):
         psi = [(p-1)*task.period - task.jitter + task.deadline
@@ -26,12 +26,22 @@ class HolisticGlobalEDFAnalysis:
 
     def apply(self, system: System) -> None:
         init_wcrt(system)
-        while True:
-            changed = False
-            for proc in system.processors:
-                changed |= self._proc_analysis(proc)
-            if not changed:
-                break
+        try:
+            while True:
+                changed = False
+                for proc in system.processors:
+                    changed |= self._proc_analysis(proc)
+                if not changed:
+                    break
+        except LimitFactorReachedException as e:
+            if self.verbose:
+                print(e.message)
+            if self.reset:
+                reset_wcrt(system)
+            else:
+                e.task.wcrt = e.response_time
+                for task in e.task.all_successors:
+                    task.wcrt = e.response_time
 
     def _proc_analysis(self, proc: Processor):
         length = self._longest_busy_period(proc, 0)
@@ -50,6 +60,9 @@ class HolisticGlobalEDFAnalysis:
                 r = self._ra(task, activation, p)
                 if r > max_r:
                     max_r = r
+                if r > task.flow.deadline * self.limit_factor:
+                    raise LimitFactorReachedException(task, r, task.flow.deadline * self.limit_factor)
+
         if max_r > task.wcrt:
             task.wcrt = max_r
             return True
@@ -64,11 +77,11 @@ class HolisticGlobalEDFAnalysis:
 
     def _wa(self, task, deadline_activation, p, wa_prev):
         wa = p*task.wcet + sum(map(lambda t: self._wi(t, wa_prev, deadline_activation),
-                                   [t for t in task.processor if t != task]))
+                                   [t for t in task.processor.tasks if t != task]))
         if math.isclose(wa, wa_prev):
             return wa
         else:
-            self._wa(task, deadline_activation, wa)
+            return self._wa(task, deadline_activation, p, wa)
 
 
     @staticmethod
@@ -191,8 +204,12 @@ def higher_priority(task: Task) -> [Task]:
 
 
 def init_wcrt(system: System):
-    for task in system.tasks:
-        task.wcrt = 0
+    for flow in system.flows:
+        tasks = flow.tasks
+        for i, task in enumerate(tasks):
+            task.wcrt = task.wcet
+            if i > 0:
+                task.wcrt += tasks[i-1].wcrt
 
 
 def reset_wcrt(system: System):
