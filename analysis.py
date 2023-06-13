@@ -2,17 +2,11 @@ from model import Task, System, Processor, save_attrs, restore_attrs
 import math
 
 
-class HolisticGlobalEDFAnalyis:
+class HolisticGlobalEDFAnalysis:
     def __init__(self, limit_factor=10, reset=True, verbose=False):
         self.limit_factor = limit_factor
         self.reset = reset
         self.verbose = verbose
-
-    def apply(self, system: System) -> None:
-        init_wcrt(system)
-
-    def _task_analysis(self, task: Task) -> bool:
-        pass
 
     @staticmethod
     def _activations(task: Task, length: float) -> int:
@@ -30,13 +24,60 @@ class HolisticGlobalEDFAnalyis:
                for task in proc.tasks for p in range(1, self._activations(task, busy_period)+1)]
         return psi
 
+    def apply(self, system: System) -> None:
+        init_wcrt(system)
+        while True:
+            changed = False
+            for proc in system.processors:
+                changed |= self._proc_analysis(proc)
+            if not changed:
+                break
+
+    def _proc_analysis(self, proc: Processor):
+        length = self._longest_busy_period(proc, 0)
+        changed = False
+        for task in proc.tasks:
+            changed |= self._task_analysis(task, length)
+        return changed
+
+    def _task_analysis(self, task: Task, length: float) -> bool:
+        max_r = 0
+        all_psi = self._set_psi(task.processor, length)
+        for p in range(1, self._activations(task, length)):
+            activations = [psi - (p-1) * task.period + task.jitter - task.deadline for psi in all_psi
+                           if (p-1)*task.period-task.jitter+task.deadline <= psi < p*task.period-task.jitter+task.deadline]
+            for activation in activations:
+                r = self._ra(task, activation, p)
+                if r > max_r:
+                    max_r = r
+        if max_r > task.wcrt:
+            task.wcrt = max_r
+            return True
+        else:
+            return False
+
+    def _ra(self, task, activation, p):
+        deadline_activation = activation - task.jitter + (p-1)*task.period + task.deadline
+        wa = self._wa(task, deadline_activation, p, 0)
+        ra = wa - activation + task.jitter - (p-1)*task.period
+        return ra
+
+    def _wa(self, task, deadline_activation, p, wa_prev):
+        wa = p*task.wcet + sum(map(lambda t: self._wi(t, wa_prev, deadline_activation),
+                                   [t for t in task.processor if t != task]))
+        if math.isclose(wa, wa_prev):
+            return wa
+        else:
+            self._wa(task, deadline_activation, wa)
+
+
     @staticmethod
     def _wi(task: Task, t: float, D: float) -> float:
         value = min(math.ceil((t+task.jitter)/task.period), math.floor((task.jitter + D - task.deadline)/task.period)+1)
         return value * task.wcet if value > 0 else 0
 
 
-class HolisticFPAnalyis:
+class HolisticFPAnalysis:
     def __init__(self, limit_factor=10, reset=True, verbose=False):
         self.limit_factor = limit_factor
         self.reset = reset
@@ -104,12 +145,12 @@ class HolisticFPAnalyis:
             return self._wi(p, w, task)
 
 
-class JosephPandyaAnalysis():
+class JosephPandyaAnalysis:
     def __init__(self, reset=True, verbose=False):
         self.reset = reset
         self.verbose = verbose
 
-    def apply(self, system: System) -> System:
+    def apply(self, system: System):
         init_wcrt(system)
 
         # first pass to calculate local response times
