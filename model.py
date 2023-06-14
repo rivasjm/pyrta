@@ -1,5 +1,6 @@
 import sys
 import warnings
+from enum import Enum
 
 
 class System:
@@ -63,10 +64,16 @@ class System:
         return "\n".join(map(lambda f: str(f), self.flows))
 
 
+class SchedulerType(Enum):
+    FP = "Fixed_priority"
+    EDF = "EDF"
+
+
 class Processor:
-    def __init__(self, name):
+    def __init__(self, name, sched=SchedulerType.FP):
         self.system = None
         self.name = name
+        self.sched = sched
 
     def __repr__(self):
         return f"{self.name}"
@@ -159,6 +166,10 @@ class Task:
     @property
     def period(self):
         return self.flow.period
+
+    @property
+    def sched(self) -> SchedulerType:
+        return self.processor.sched
 
     @property
     def successors(self):

@@ -8,9 +8,9 @@ def get_palencia_system() -> System:
     system = System()
 
     # 2 cpus + 1 network
-    cpu1 = Processor(name="cpu1")
-    cpu2 = Processor(name="cpu2")
-    network = Processor(name="network")
+    cpu1 = Processor(name="cpu1", sched=SchedulerType.FP)
+    cpu2 = Processor(name="cpu2", sched=SchedulerType.FP)
+    network = Processor(name="network", sched=SchedulerType.FP)
     system.add_procs(cpu1, cpu2, network)
 
     # priority levels
@@ -38,13 +38,14 @@ def get_palencia_system() -> System:
 
 
 def get_system(size, random=Random(), utilization=0.5, balanced=False, name=None,
-               deadline_factor_min=0.5, deadline_factor_max=1) -> System:
+               deadline_factor_min=0.5, deadline_factor_max=1, sched: SchedulerType = SchedulerType.FP) -> System:
     n_flows, t_tasks, n_procs = size
     system = generate_system(random,
                              n_flows=n_flows,
                              n_tasks=t_tasks,
                              n_procs=n_procs,
                              utilization=utilization,
+                             sched=sched,
                              period_min=100,
                              period_max=100*3,
                              deadline_factor_min=deadline_factor_min,

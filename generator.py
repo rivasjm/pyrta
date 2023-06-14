@@ -33,12 +33,12 @@ def set_utilization(system: System, utilization: float):
         set_processor_utilization(proc, utilization)
 
 
-def generate_system(random: Random, n_flows, n_tasks, n_procs, utilization,
+def generate_system(random: Random, n_flows, n_tasks, n_procs, utilization, sched: SchedulerType,
                     period_min, period_max, deadline_factor_min, deadline_factor_max,
                     balanced=False) -> System:
 
     system = System()
-    procs = [Processor(name=f"proc{i}") for i in range(n_procs)]
+    procs = [Processor(name=f"proc{i}", sched=sched) for i in range(n_procs)]
     system.add_procs(*procs)
 
     # set the general structure
@@ -73,8 +73,14 @@ def generate_system(random: Random, n_flows, n_tasks, n_procs, utilization,
     return system
 
 
+def to_edf(system: System):
+    for proc in system.processors:
+        proc.sched = SchedulerType.EDF
+    return system
+
+
 def copy(system: System):
-    new_procs = {proc.name: Processor(name=proc.name) for proc in system.processors}
+    new_procs = {proc.name: Processor(name=proc.name, sched=proc.sched) for proc in system.processors}
     new_system = System()
 
     for flow in system:

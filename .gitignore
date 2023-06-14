@@ -6,6 +6,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# MAST files
+mast_parser.lis
+
 # C extensions
 *.so
 
