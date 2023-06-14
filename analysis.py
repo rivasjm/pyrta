@@ -53,7 +53,7 @@ class HolisticGlobalEDFAnalysis:
     def _task_analysis(self, task: Task, length: float) -> bool:
         max_r = 0
         all_psi = self._set_psi(task.processor, length)
-        for p in range(1, self._activations(task, length)):
+        for p in range(1, self._activations(task, length) + 1):
             activations = [psi - (p-1) * task.period + task.jitter - task.deadline for psi in all_psi
                            if (p-1)*task.period-task.jitter+task.deadline <= psi < p*task.period-task.jitter+task.deadline]
             for activation in activations:

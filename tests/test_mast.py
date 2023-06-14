@@ -5,16 +5,12 @@ from examples import get_palencia_system
 from analysis import repr_wcrts, reset_wcrt, HolisticFPAnalysis, HolisticGlobalEDFAnalysis
 from assignment import PDAssignment
 
-
-MAST_PATH = 'D:\dev\pymast\mast\mast-1-5-1-0-bin\mast_analysis.exe'
-
-
 class MASTHolisticTest(unittest.TestCase):
     def test_holistic_fp_palencia(self):
         system = get_palencia_system()
 
         # analyze with MAST
-        holistic_mast = MastHolisticAnalysis(mast_path=MAST_PATH, limit_factor=100)
+        holistic_mast = MastHolisticAnalysis(limit_factor=100)
         system.apply(holistic_mast)
         mast_wcrts = [task.wcrt for task in system.tasks]
 
@@ -36,7 +32,7 @@ class MASTHolisticTest(unittest.TestCase):
         pd.apply(system)
 
         # analyze with MAST
-        holistic_mast = MastHolisticAnalysis(mast_path=MAST_PATH, limit_factor=100)
+        holistic_mast = MastHolisticAnalysis(limit_factor=100)
         system.apply(holistic_mast)
         mast_wcrts = [task.wcrt for task in system.tasks]
 
@@ -48,7 +44,6 @@ class MASTHolisticTest(unittest.TestCase):
 
         # compare results: should be the same
         self.assertListEqual(mast_wcrts, py_wcrts)
-
 
 
 if __name__ == '__main__':

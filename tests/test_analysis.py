@@ -61,6 +61,7 @@ class HolisticTest(unittest.TestCase):
                                  n_flows=random.randint(1, 10),
                                  n_tasks=random.randint(1, 10),
                                  n_procs=random.randint(1, 5),
+                                 sched=SchedulerType.FP,
                                  utilization=utilization,
                                  period_min=100, period_max=100 * random.uniform(2.0, 1000.0),
                                  deadline_factor_min=0.5, deadline_factor_max=2)
@@ -86,6 +87,7 @@ class HolisticTest(unittest.TestCase):
                                      n_flows=4,
                                      n_tasks=5,
                                      n_procs=4,
+                                     sched=SchedulerType.FP,
                                      utilization=utilization,
                                      period_min=100, period_max=100 * random.uniform(2.0, 1000.0),
                                      deadline_factor_min=0.86, deadline_factor_max=0.86)

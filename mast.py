@@ -5,6 +5,7 @@ import os.path
 import subprocess
 from bs4 import BeautifulSoup
 import tempfile
+import config
 
 
 class MastAnalysis(Enum):
@@ -23,30 +24,29 @@ class MastAssignment(Enum):
 # region MAST Wrappers
 
 class MastWrapper:
-    def __init__(self, mast_path, analysis: MastAnalysis, assignment=MastAssignment.NONE,
+    def __init__(self, analysis: MastAnalysis, assignment=MastAssignment.NONE,
                  limit_factor=100):
-        self.mast_path = mast_path
         self.analysis = analysis
         self.assignment = assignment
         self.limit_factor = limit_factor
 
     def apply(self, system: System) -> None:
-        analyze(self.mast_path, system, self.analysis, self.assignment, limit=self.limit_factor)
+        analyze(system, self.analysis, self.assignment, limit=self.limit_factor)
 
 
 class MastHolisticAnalysis(MastWrapper):
-    def __init__(self, mast_path, assignment=MastAssignment.NONE, limit_factor=100):
-        super().__init__(mast_path, MastAnalysis.HOLISTIC, assignment=assignment, limit_factor=limit_factor)
+    def __init__(self, assignment=MastAssignment.NONE, limit_factor=100):
+        super().__init__(MastAnalysis.HOLISTIC, assignment=assignment, limit_factor=limit_factor)
 
 
 class MastOffsetAnalysis(MastWrapper):
-    def __init__(self, mast_path, assignment=MastAssignment.NONE, limit_factor=100):
-        super().__init__(mast_path, MastAnalysis.OFFSET, assignment=assignment, limit_factor=limit_factor)
+    def __init__(self, assignment=MastAssignment.NONE, limit_factor=100):
+        super().__init__(MastAnalysis.OFFSET, assignment=assignment, limit_factor=limit_factor)
 
 
 class MastOffsetPrecedenceAnalysis(MastWrapper):
-    def __init__(self, mast_path, assignment=MastAssignment.NONE, limit_factor=100):
-        super().__init__(mast_path, MastAnalysis.OFFSET_PR, assignment=assignment, limit_factor=limit_factor)
+    def __init__(self, assignment=MastAssignment.NONE, limit_factor=100):
+        super().__init__(MastAnalysis.OFFSET_PR, assignment=assignment, limit_factor=limit_factor)
 
 
 # endregion
@@ -54,8 +54,7 @@ class MastOffsetPrecedenceAnalysis(MastWrapper):
 
 # region MAST Analysis
 
-def analyze(mast_path, system: System,
-            analysis: MastAnalysis, assignment: MastAssignment = MastAssignment.NONE, limit=1e100):
+def analyze(system: System, analysis: MastAnalysis, assignment: MastAssignment = MastAssignment.NONE, limit=1e100):
 
     # create random temporary file names for this analysis, will be removed afterwards
     temp_dir = tempfile.TemporaryDirectory()
@@ -72,7 +71,7 @@ def analyze(mast_path, system: System,
         export(system, input)
 
         # analyze with mast, capture results
-        schedulable, results = run(analysis, assignment, mast_path, input, output, limit)
+        schedulable, results = run(analysis, assignment, input, output, limit)
 
         # save wcrts into the system
         for task in system.tasks:
@@ -101,7 +100,10 @@ def clear_files(*files):
                     pass
 
 
-def run(analysis: MastAnalysis, assignment: MastAssignment, mast_path, input, output=None, limit=None, timeout=None):
+def run(analysis: MastAnalysis, assignment: MastAssignment, input, output=None, limit=None, timeout=None):
+    c = config.get_config()
+    mast_path = c['mast_path'] if 'mast_path' in c else "mast_analysis.exe"
+
     cmd = [mast_path, analysis.value]
     if assignment is not MastAssignment.NONE:
         cmd.append("-p")

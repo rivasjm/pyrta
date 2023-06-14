@@ -6,6 +6,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# pyrta files
+config.ini
+
 # MAST files
 mast_parser.lis
 
