@@ -22,7 +22,9 @@ def globalize_deadlines(system: System):
         tasks = flow.tasks
         if len(tasks) <= 1:
             continue
-        for i, task in enumerate(tasks[1:]):
+        for i, task in enumerate(tasks):
+            if i == 0:
+                continue
             task.deadline += tasks[i-1].deadline
 
 
