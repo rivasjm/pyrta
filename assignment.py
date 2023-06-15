@@ -98,13 +98,14 @@ class PDAssignment:
 
 class HOPAssignment:
     def __init__(self, analysis, iterations=40, k_pairs=None, patience=40, over_iterations=0,
-                 callback=None, normalize=False, verbose=False):
+                 callback=None, normalize=False, globalize=False, verbose=False):
         self.analysis = analysis
         self.k_pairs = k_pairs if k_pairs else HOPAssignment.default_k_pairs()
         self.iterations = iterations
         self.patience = patience
         self.over_iterations = over_iterations
         self.callback = callback
+        self.globalize = globalize
         self.verbose = verbose
         self.normalize = normalize
         self.exec_time = ExecTime()
@@ -125,6 +126,8 @@ class HOPAssignment:
         best_slack = float("-inf")
 
         PDAssignment.calculate_local_deadlines(system)
+        if self.globalize:
+            globalize_deadlines(system)
         save_assignment(system)
 
         for ka, kr in self.k_pairs:
@@ -169,6 +172,8 @@ class HOPAssignment:
                     break
 
                 self.update_local_deadlines(system, ka, kr)
+                if self.globalize:
+                    globalize_deadlines(system)
 
             if stop:
                 break
