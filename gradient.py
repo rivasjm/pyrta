@@ -1,7 +1,7 @@
 from model import System
 
 
-class DeadlineExtractor:
+class DeadlineParameters:
     @staticmethod
     def extract(system: System) -> [float]:
         r = [t.deadline for t in system.tasks]
@@ -15,7 +15,7 @@ class DeadlineExtractor:
             t.deadline = v
 
 
-class PriorityExtractor:
+class PriorityParameters:
     @staticmethod
     def extract(system: System) -> [float]:
         r = [t.priority for t in system.tasks]
@@ -26,4 +26,12 @@ class PriorityExtractor:
         tasks = system.tasks
         assert len(tasks) == len(vector)
         for v, t in zip(vector, tasks):
-            t.deadline = v
+            t.priority = v
+
+
+class Gradient:
+    def __init__(self, steps: [float]):
+        self.steps = steps
+
+    def apply(self, system: System):
+
