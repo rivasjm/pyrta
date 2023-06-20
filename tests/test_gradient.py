@@ -30,7 +30,9 @@ class StandardGradientDescentTest(unittest.TestCase):
         pd.apply(system)
 
         x = optimizer.apply(system)
-        print(x)
+        extractor.insert(system, x)
+        analysis.apply(system)
+        self.assertTrue(system.is_schedulable())
 
 
 

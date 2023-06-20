@@ -22,8 +22,8 @@ class StandardGradientDescent(GradientDescentFunction):
 
     def apply(self, S: System) -> [float]:
         t = 1
-        x = self.extractor.extract(S)
         best = float('inf')     # best cost value
+        x = self.extractor.extract(S)
         xb = x                  # best input
         while True:
             cost = self.cost_function.apply(S, x)
@@ -32,7 +32,7 @@ class StandardGradientDescent(GradientDescentFunction):
                 xb = x
 
             if self.verbose:
-                print(f"iteration={t}: cost={cost} best={best}")
+                print(f"iteration={t}: cost={cost:.3f} best={best:.3f}")
 
             stop = self.stop_function.apply(S, x, cost, t)
             if stop:
@@ -42,6 +42,9 @@ class StandardGradientDescent(GradientDescentFunction):
             update = self.update_function.apply(S, x, nabla, t)
             x = [a + b for a, b in zip(x, update)]
             t = t + 1
+
+            self.extractor.insert(S, x)
+            x = self.extractor.extract(S)
 
         return xb
 
@@ -60,7 +63,8 @@ class DeadlineExtractor(Extractor):
 
 class PriorityExtractor(Extractor):
     def extract(self, system: System) -> [float]:
-        r = [t.priority for t in system.tasks]
+        max_priority = max(map(lambda t: t.priority, system.tasks))
+        r = [t.priority/max_priority for t in system.tasks]
         return r
 
     def insert(self, system: System, x: [float]):
@@ -103,7 +107,7 @@ class StandardGradient(GradientFunction):
     def _gradient_from_costs(self, costs, deltas) -> [float]:
         gradient = [0] * int(len(costs) / 2)
         for i in range(len(gradient)):
-            gradient[i] = (costs[i] - costs[i + 1]) / \
+            gradient[i] = (costs[2*i] - costs[2*i + 1]) / \
                           (2 * deltas[i % len(deltas)])
         return gradient
 
@@ -116,21 +120,12 @@ class StandardGradient(GradientFunction):
 
 
 class AvgSeparationDelta(DeltaFunction):
-    def __init__(self, factor=1):
+    def __init__(self, factor=1.5):
         self.factor = factor
 
     def apply(self, S: System, x: [float]) -> [float]:
-        ordered = sorted(x)
-        dist = 0
-        count = 0
-        for i in range(len(ordered) - 1):
-            a = ordered[i]
-            b = ordered[i+1]
-            if math.isclose(a, b):
-                continue
-            dist += abs(a - b)
-            count += 1
-        return [self.factor * dist/count] if count > 0 else 1
+        seps = [abs(x[i + 1] - x[i]) for i in range(len(x) - 1)]
+        return [self.factor * sum(seps) / len(seps)]
 
 
 class StandardStop(StopFunction):
@@ -151,7 +146,7 @@ class SequentialBatchCostFunction(BatchCostFunction):
 
 
 class GradientNoise(UpdateFunction):
-    def __init__(self, lr, gamma=0.9, seed=42):
+    def __init__(self, lr, gamma=1.2, seed=1):
         self.lr = lr
         self.gamma = gamma
         self.seed = seed
@@ -175,7 +170,7 @@ class GradientNoise(UpdateFunction):
 
 
 class Adam(UpdateFunction):
-    def __init__(self, lr=0.2, beta1=0.9, beta2=0.999, epsilon=10**-8):
+    def __init__(self, lr=3, beta1=0.9, beta2=0.999, epsilon=0.1):
         self.size = None
         self.m = None
         self.v = None
@@ -204,13 +199,13 @@ class Adam(UpdateFunction):
             me = self.m[i] / (1 - self.beta1 ** t)
             ve = self.v[i] / (1 - self.beta2 ** t)
 
-            updates[i] = self.lr*me/(math.sqrt(ve)+self.epsilon)
+            updates[i] = -self.lr*me/(math.sqrt(ve)+self.epsilon)
 
         return updates
 
 
 class NoisyAdam(UpdateFunction):
-    def __init__(self, lr=0.2, beta1=0.9, beta2=0.999, epsilon=10**-8, gamma=0.9, seed=42):
+    def __init__(self, lr=3, beta1=0.9, beta2=0.999, epsilon=0.1, gamma=0.9, seed=1):
         self.noise = GradientNoise(lr=lr, gamma=gamma, seed=seed)
         self.adam = Adam(lr=lr, beta1=beta1, beta2=beta2, epsilon=epsilon)
 
