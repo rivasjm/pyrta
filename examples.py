@@ -61,19 +61,19 @@ def get_barely_schedulable() -> System:
     return get_system((n_flows, t_tasks, n_procs), random, 0.84, name="barely")
 
 
-def get_small_system(random=Random(), utilization=0.5, balanced=False) -> System:
+def get_small_system(random=Random(), utilization=0.5, balanced=False, sched=SchedulerType.FP) -> System:
     n_flows, t_tasks, n_procs = (3, 4, 3)
-    return get_system((n_flows, t_tasks, n_procs), random, utilization, balanced, name="small")
+    return get_system((n_flows, t_tasks, n_procs), random, utilization, balanced, name="small", sched=sched)
 
 
-def get_medium_system(random=Random(), utilization=0.84, balanced=False) -> System:
+def get_medium_system(random=Random(), utilization=0.84, balanced=False, sched=SchedulerType.FP) -> System:
     n_flows, t_tasks, n_procs = (4, 5, 3)
-    return get_system((n_flows, t_tasks, n_procs), random, utilization, balanced, name="medium")
+    return get_system((n_flows, t_tasks, n_procs), random, utilization, balanced, name="medium", sched=sched)
 
 
-def get_big_system(random=Random(), utilization=0.84, balanced=False) -> System:
+def get_big_system(random=Random(), utilization=0.84, balanced=False, sched=SchedulerType.FP) -> System:
     n_flows, t_tasks, n_procs = (8, 8, 5)
-    return get_system((n_flows, t_tasks, n_procs), random, utilization, balanced, name="big")
+    return get_system((n_flows, t_tasks, n_procs), random, utilization, balanced, name="big", sched=sched)
 
 
 def generate_anomaly_system() -> System:
