@@ -1,10 +1,12 @@
 import random
 import unittest
-from mast import MastHolisticAnalysis, MastAssignment
+from mast import MastHolisticAnalysis, MastAssignment, export
 from generator import to_edf
 from examples import get_palencia_system, get_small_system, get_medium_system, get_big_system
 from analysis import repr_wcrts, reset_wcrt, HolisticFPAnalysis, HolisticGlobalEDFAnalysis
 from assignment import PDAssignment
+from model import System, Task, Flow, Processor, SchedulerType
+
 
 class MASTHolisticTest(unittest.TestCase):
     def test_holistic_fp_palencia(self):
@@ -93,6 +95,30 @@ class MASTHolisticTest(unittest.TestCase):
         # compare results: should be the same
         for m, p in zip(mast_wcrts, py_wcrts):
             self.assertAlmostEqual(m, p, delta=0.001)
+
+
+    def test_model_offset(self):
+        system = System()
+
+        # 2 cpus + 1 network
+        cpu1 = Processor(name="cpu1", sched=SchedulerType.FP)
+        system.add_procs(cpu1)
+
+        # priority levels
+        HIGH = 10
+        LOW = 1
+
+        # 2 flows
+        flow1 = Flow(name="flow1", period=100, deadline=100)
+
+        # tasks
+        flow1.add_tasks(
+            Task(name="a1", wcet=5, priority=HIGH, processor=cpu1),
+            Task(name="a2", wcet=2, priority=LOW, processor=cpu1, offset=60)
+        )
+        system.add_flows(flow1)
+        system.name = "offsets"
+        export(system, "offsets-test.txt")
 
 
 if __name__ == '__main__':

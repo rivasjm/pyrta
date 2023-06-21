@@ -146,7 +146,8 @@ class Task:
                  name: str,
                  wcet: float,
                  processor: Processor = None,
-                 priority: int = 1):
+                 priority: int = 1,
+                 offset: float = None):
         self.flow = None
         self.name = name
         self.wcet = wcet
@@ -155,6 +156,7 @@ class Task:
         self.priority: int = priority
         self.deadline = None
         self.wcrt = None
+        self.offset = offset
 
     def __repr__(self):
         return f"{self.processor.name}({self.wcet:.2f})"

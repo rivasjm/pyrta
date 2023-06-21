@@ -263,6 +263,8 @@ def write_transaction(flow: Flow) -> str:
 
 
 def write_internal_event(task: Task) -> str:
+    if task.offset:
+        return write_internal_event_with_offset(task)
     fixed = """
             (Type 	=> regular,
             name 	=> {0}""".format(output_event_name(task))
@@ -276,17 +278,58 @@ def write_internal_event(task: Task) -> str:
                 referenced_event => {1}))""".format(task.flow.deadline, external_event_name(task.flow))
 
 
+def write_internal_event_with_offset(task: Task) -> str:
+    msg = """
+            (Type 	=> regular,
+             name 	=> {0}),""".format(output_offset_event_name(task))
+    msg += """
+            (Type 	=> regular,
+             name 	=> {0}""".format(output_event_name(task))
+    if not task.is_last:
+        return msg + "),"
+    else:
+        return msg + """,
+            Timing_Requirements => (
+                Type 		  => Hard_Global_Deadline,
+                Deadline 	  => {0},
+                referenced_event => {1}))""".format(task.flow.deadline, external_event_name(task.flow))
+
+
 def write_event_handler(task: Task) -> str:
-    return """
-            (Type         => Activity,
-            Input_Event         => {0},
-            Output_Event        => {1},
-            Activity_Operation  => {2},
-            Activity_Server     => {3})""".format(input_event_name(task), output_event_name(task), task.name, task.name)
+    if task.offset:
+        msg = """
+               (Type         => Offset,
+                Input_Event         => {0},
+                Output_Event        => {1},
+                Delay_Max_Interval  => {2},
+                Delay_Min_Interval     => {3},
+                Referenced_Event   => {4})""".format(input_event_name(task), output_offset_event_name(task),
+                                                     task.offset, task.offset, external_event_name(task.flow))
+        msg += """
+                (Type         => Activity,
+                Input_Event         => {0},
+                Output_Event        => {1},
+                Activity_Operation  => {2},
+                Activity_Server     => {3})""".format(output_offset_event_name(task), output_event_name(task),
+                                                      task.name, task.name)
+        return msg
+
+    else:
+        return """
+                (Type         => Activity,
+                Input_Event         => {0},
+                Output_Event        => {1},
+                Activity_Operation  => {2},
+                Activity_Server     => {3})""".format(input_event_name(task), output_event_name(task),
+                                                      task.name, task.name)
 
 
 def output_event_name(task: Task) -> str:
     return f"o_{task.name}"
+
+
+def output_offset_event_name(task: Task) -> str:
+    return f"oo_{task.name}"
 
 
 def reverse_output_event_name(event_name) -> str:
