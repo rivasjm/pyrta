@@ -345,14 +345,14 @@ def random_priority_jump(system: System, random=Random()):
 def repr_priorities(system: System) -> str:
     msg = ""
     for flow in system.flows:
-        ts = " ".join(map(lambda t: f"{t.priority:.2f}", flow.tasks))
-        msg += f"{flow.period}: {ts} : {flow.deadline}\n"
+        ts = " ".join(map(lambda t: f"{t.priority:.2f}[{t.processor.name}]", flow.tasks))
+        msg += f"{flow.period:.2f}: {ts} : {flow.deadline:.2f}\n"
     return msg
 
 
 def repr_deadlines(system: System) -> str:
     msg = ""
     for flow in system.flows:
-        ts = " ".join(map(lambda t: f"{t.deadline:.2f}", flow.tasks))
-        msg += f"{flow.period}: {ts} : {flow.deadline}\n"
+        ts = " ".join(map(lambda t: f"{t.deadline:.2f}[{t.processor.name}]", flow.tasks))
+        msg += f"{flow.period:.2f}: {ts} : {flow.deadline:.2f}\n"
     return msg

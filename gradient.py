@@ -12,12 +12,14 @@ class StandardGradientDescent(GradientDescentFunction):
                  stop_function: StopFunction,
                  gradient_function: GradientFunction,
                  update_function: UpdateFunction,
-                 verbose = False):
+                 callback=None,
+                 verbose=False):
         self.extractor = extractor
         self.cost_function = cost_function
         self.stop_function = stop_function
         self.gradient_function = gradient_function
         self.update_function = update_function
+        self.callback = callback
         self.verbose = verbose
 
     def apply(self, S: System) -> [float]:
@@ -30,6 +32,9 @@ class StandardGradientDescent(GradientDescentFunction):
             if cost < best:
                 best = cost
                 xb = x
+
+            if self.callback:
+                self.callback(t, S, x, xb, cost, best)
 
             if self.verbose:
                 print(f"iteration={t}: cost={cost:.3f} best={best:.3f}")
@@ -46,6 +51,7 @@ class StandardGradientDescent(GradientDescentFunction):
             self.extractor.insert(S, x)
             x = self.extractor.extract(S)
 
+        self.extractor.insert(S, xb)
         return xb
 
 
@@ -72,6 +78,32 @@ class PriorityExtractor(Extractor):
         assert len(tasks) == len(x)
         for v, t in zip(x, tasks):
             t.priority = v
+
+
+class MappingPriorityExtractor(Extractor):
+    def __init__(self):
+        self.prio_extractor = PriorityExtractor()
+
+    def extract(self, S: System) -> [float]:
+        m_vector = [1 if task.processor == proc else 0 for task in S.tasks for proc in S.processors]
+        p_vector = self.prio_extractor.extract(S)
+        return m_vector + p_vector
+
+    def insert(self, S: System, x: [float]) -> None:
+        tasks = S.tasks
+        procs = S.processors
+        p = len(procs)
+        t = len(tasks)
+        assert len(x) == p*t + t
+
+        # parse mapping values (fist p*t values)
+        for i in range(t):
+            sub = x[i*p: i*p+3]
+            proc_index = sub.index(max(sub))
+            tasks[i].processor = procs[proc_index]
+
+        # parse priority values (last t values)
+        self.prio_extractor.insert(S, x[-t:])
 
 
 class InvslackCost(CostFunction):
