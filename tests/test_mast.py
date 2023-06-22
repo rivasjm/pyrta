@@ -112,8 +112,8 @@ class MASTHolisticTest(unittest.TestCase):
 
         # tasks
         flow1.add_tasks(
-            Task(name="a1", wcet=5, priority=HIGH, processor=cpu1),
-            Task(name="a2", wcet=2, priority=LOW, processor=cpu1, offset=60)
+            Task(name="a1", wcet=5, priority=LOW, processor=cpu1),
+            Task(name="a2", wcet=2, priority=HIGH, processor=cpu1, offset=60)
         )
         system.add_flows(flow1)
         system.name = "offsets"
