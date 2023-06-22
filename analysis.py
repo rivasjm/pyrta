@@ -225,7 +225,7 @@ def restore_wcrt(system: System):
     restore_attrs(system.tasks, ["wcrt"])
 
 
-def repr_wcrts(system: System):
+def repr_wcrts(system: System) -> str:
     msg = ""
     for flow in system.flows:
         ts = " ".join(map(lambda t: f"{t.wcrt if t.wcrt else 0:.2f}", flow.tasks))

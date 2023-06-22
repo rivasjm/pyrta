@@ -24,8 +24,7 @@ class MastAssignment(Enum):
 # region MAST Wrappers
 
 class MastWrapper:
-    def __init__(self, analysis: MastAnalysis, assignment=MastAssignment.NONE,
-                 limit_factor=100):
+    def __init__(self, analysis: MastAnalysis, assignment=MastAssignment.NONE, limit_factor=100):
         self.analysis = analysis
         self.assignment = assignment
         self.limit_factor = limit_factor
@@ -55,13 +54,12 @@ class MastOffsetPrecedenceAnalysis(MastWrapper):
 # region MAST Analysis
 
 def analyze(system: System, analysis: MastAnalysis, assignment: MastAssignment = MastAssignment.NONE, limit=1e100):
-
     # create random temporary file names for this analysis, will be removed afterwards
     temp_dir = tempfile.TemporaryDirectory()
     name = str(uuid.uuid1())
     input = os.path.abspath(os.path.join(temp_dir.name, name + ".txt"))
     output = os.path.abspath(os.path.join(temp_dir.name, name + "-out.xml"))
-    preserve = False
+    preserve = False  # this is useless, the tempdir is removed anyways
 
     try:
         # make sure priorities are correct for mast (integers higher than 0)
@@ -303,7 +301,7 @@ def write_event_handler(task: Task) -> str:
                 Output_Event        => {1},
                 Delay_Max_Interval  => {2},
                 Delay_Min_Interval     => {3},
-                Referenced_Event   => {4})""".format(input_event_name(task), output_offset_event_name(task),
+                Referenced_Event   => {4}),""".format(input_event_name(task), output_offset_event_name(task),
                                                      task.offset, task.offset, external_event_name(task.flow))
         msg += """
                 (Type         => Activity,

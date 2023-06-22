@@ -1,6 +1,6 @@
 import random
 import unittest
-from mast import MastHolisticAnalysis, MastAssignment, export
+from mast import MastHolisticAnalysis, MastOffsetAnalysis, MastAssignment, export
 from generator import to_edf
 from examples import get_palencia_system, get_small_system, get_medium_system, get_big_system
 from analysis import repr_wcrts, reset_wcrt, HolisticFPAnalysis, HolisticGlobalEDFAnalysis
@@ -96,7 +96,6 @@ class MASTHolisticTest(unittest.TestCase):
         for m, p in zip(mast_wcrts, py_wcrts):
             self.assertAlmostEqual(m, p, delta=0.001)
 
-
     def test_model_offset(self):
         system = System()
 
@@ -118,7 +117,11 @@ class MASTHolisticTest(unittest.TestCase):
         )
         system.add_flows(flow1)
         system.name = "offsets"
-        export(system, "offsets-test.txt")
+
+        analysis = MastOffsetAnalysis()
+        analysis.apply(system)
+
+        self.assertAlmostEqual(flow1['a2'].wcrt, 62)
 
 
 if __name__ == '__main__':
