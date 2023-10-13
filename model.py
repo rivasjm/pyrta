@@ -65,7 +65,7 @@ class System:
 
 
 class SchedulerType(Enum):
-    FP = "Fixed_priority"
+    FP = "Fixed_Priority"
     EDF = "EDF"
 
 
@@ -141,22 +141,30 @@ class Flow:
         return None
 
 
+class TaskType(Enum):
+    Activity = "Activity"
+    Offset = "Offset"
+    Delay = "Delay"
+
+
 class Task:
     def __init__(self,
                  name: str,
                  wcet: float,
                  processor: Processor = None,
+                 type: TaskType = TaskType.Activity,
                  priority: int = 1,
-                 offset: float = None):
+                 bcet: float = 0):
         self.flow = None
         self.name = name
         self.wcet = wcet
-
         self.processor: processor.Processor = processor
+        self.type = type
+
         self.priority: int = priority
-        self.deadline = None
+        self.deadline = 0
         self.wcrt = None
-        self.offset = offset
+        self.bcet = bcet
 
     def __repr__(self):
         return f"{self.processor.name}({self.wcet:.2f})"

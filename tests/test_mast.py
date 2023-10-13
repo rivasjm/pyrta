@@ -1,6 +1,8 @@
 import random
 import unittest
-from mast import MastHolisticAnalysis, MastOffsetAnalysis, MastAssignment, export
+
+import examples
+from mast import MastHolisticAnalysis, MastOffsetAnalysis, MastAssignment, MastOffsetPrecedenceAnalysis
 from generator import to_edf
 from examples import get_palencia_system, get_small_system, get_medium_system, get_big_system
 from analysis import repr_wcrts, reset_wcrt, HolisticFPAnalysis, HolisticGlobalEDFAnalysis
@@ -122,6 +124,14 @@ class MASTHolisticTest(unittest.TestCase):
         analysis.apply(system)
 
         self.assertAlmostEqual(flow1['a2'].wcrt, 62)
+
+
+class MASTOffsetsTest(unittest.TestCase):
+    def simple_gpu_test(self):
+        system = examples.get_simple_gpu()
+        analysis = MastOffsetPrecedenceAnalysis()
+        analysis.apply(system)
+        print(repr_wcrts(system))
 
 
 if __name__ == '__main__':

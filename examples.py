@@ -97,3 +97,30 @@ def generate_anomaly_system() -> System:
     system = systems[9]  #
     set_utilization(system, utilization)
     return system
+
+
+def get_simple_gpu() -> System:
+    system = System()
+
+    # 1 cpu
+    cpu1 = Processor(name="cpu1", sched=SchedulerType.FP)
+    system.add_procs(cpu1)
+
+    # 2 flows
+    una = Flow(name="unavailable", period=60, deadline=60)
+    gen = Flow(name="genetico", period=500, deadline=500)
+
+    # tasks
+    una.add_tasks(
+        Task(name="a1_1", type=TaskType.Offset, wcet=10, bcet=10),
+        Task(name="a1_2", wcet=50, bcet=50, priority=254, processor=cpu1))
+
+    gen.add_tasks(
+        Task(name="a2_1", wcet=5, bcet=5, priority=100, processor=cpu1),
+        Task(name="a2_2", type=TaskType.Delay, wcet=50, bcet=30),
+        Task(name="a2_3", wcet=8, bcet=8, priority=99, processor=cpu1),
+        Task(name="a2_4", wcet=3, bcet=3, priority=96, processor=cpu1)
+    )
+    system.add_flows(una, gen)
+    system.name = "genetico-gpu"
+    return system
