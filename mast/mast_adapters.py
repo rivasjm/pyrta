@@ -1,4 +1,5 @@
 from model import System, Processor, Flow, Task, TaskType
+from mast_constants import MAX_PRIORITY
 import textwrap
 
 
@@ -63,8 +64,8 @@ class ProcessorAdapter:
         Processing_Resource (
            Type                   => Regular_Processor,
            Name                   => {processing_resource_name(self.processor)},
-           Max_Interrupt_Priority => 512,
-           Min_Interrupt_Priority => 512,
+           Max_Interrupt_Priority => {MAX_PRIORITY+1},
+           Min_Interrupt_Priority => {MAX_PRIORITY+1},
            Worst_ISR_Switch       => 0.00,
            Avg_ISR_Switch         => 0.00,
            Best_ISR_Switch        => 0.00,
@@ -82,7 +83,7 @@ class ProcessorAdapter:
                 Worst_Context_Switch => 0.00,
                 Avg_Context_Switch   => 0.00,
                 Best_Context_Switch  => 0.00,
-                Max_Priority         => 511,
+                Max_Priority         => {MAX_PRIORITY},
                 Min_Priority         => 1))""")
         return literal
 
@@ -218,17 +219,3 @@ class SystemAdapter:
         trans = "\n\n".join(map(lambda f: f.transaction() + ";", self.flows))
         literal = f"""{pr}\n\n{scheds}\n\n{opers}\n\n{ss}\n\n{trans}"""
         return literal
-
-
-def export(system: System, file):
-    adapter = SystemAdapter(system)
-    txt = adapter.serialize()
-    with open(file, "w") as f:
-        f.write(txt)
-
-
-if __name__ == '__main__':
-    import examples
-    system = SystemAdapter(examples.get_simple_gpu())
-    print(system.serialize())
-

@@ -67,7 +67,7 @@ def analyze(system: System, analysis: MastAnalysis, assignment: MastAssignment =
         sanitize_priorities(system)
 
         # export system to a file with mast format
-        mast_adapters.export(system, input)
+        export(system, input)
 
         # analyze with mast, capture results
         schedulable, results = run(analysis, assignment, input, output, limit)
@@ -160,6 +160,12 @@ def find_task_wcrt(element):
 
 
 # region MAST Writers
+
+def export(system: System, file):
+    adapter = mast_adapters.SystemAdapter(system)
+    txt = adapter.serialize()
+    with open(file, "w") as f:
+        f.write(txt)
 
 # def export(system: System, file):
 #     txt = write_system(system)
