@@ -55,7 +55,7 @@ def plot_r(i, p, ax):
     pm = prio > prio.T
     hp = pm[:, i]
 
-    x = np.linspace(0, 200, 1000)
+    x = np.linspace(0, 100, 1000)
     f = partial(func_r, p, i, hp)
 
     sol = converge(f, 0)
