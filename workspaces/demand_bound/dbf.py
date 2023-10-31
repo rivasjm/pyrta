@@ -52,10 +52,11 @@ def chart(task: Task, p, ax):
     ax.text(0.05, 0.9, f"p={p}", transform=ax.transAxes)
 
 
-def func_w(task: Task, p, w):
+def func_w(task: Task, p, w, ceiling=True):
     hp = higher_priority(task)
+    ceil = np.ceil if ceiling else lambda x: x
     result = (p * task.wcet
-              + sum(map(lambda t: np.ceil((t.jitter + w) / t.period) * t.wcet, hp)))
+              + sum(map(lambda t: ceil((t.jitter + w) / t.period) * t.wcet, hp)))
     return result
 
 
@@ -111,12 +112,17 @@ def holistic_fp_r(s: System):
         r = np.array([task.wcrt for task in s.tasks])
 
 
-def fast_holistic_fp(s: System):
+def fast_holistic_fp(s: System, ceiling=True, limit_i=-1, limit_p=-1):
     init_wcrt(s)
     rprev = np.array([task.wcrt for task in s.tasks])
     r = np.zeros_like(rprev)
 
+    i = limit_i
     while not np.allclose(r, rprev):
+        if i == 0:
+            break
+        i -= 1
+
         rprev = r
         for task in s.tasks:
             n = len(task.flow.tasks)
@@ -124,14 +130,15 @@ def fast_holistic_fp(s: System):
             while True:
                 # iterate p=1,2,..., until wp is less than this bound
                 bound = p*task.period
-                f = partial(func_w, task, p)
+                f = partial(func_w, task, p, ceiling=ceiling)
                 wp = fast_converge(f, task.period*n)
                 rp = wp - (p-1)*task.period + task.jitter
                 if rp > task.wcrt:
                     task.wcrt = rp
-                if wp <= bound:
+                if wp <= bound or p == limit_p:
                     break
                 p += 1
+
         r = np.array([task.wcrt for task in s.tasks])
 
 
@@ -181,31 +188,87 @@ def holistic_comparison():
     plt.show()
 
 
-def correlation():
-    s = examples.get_small_system(random=random.Random(2), utilization=0.4)
+def correlation_chart(ax: plt.Axes, funca, funcb, s):
+    rnd = random.Random(1)
     pd = assignment.PDAssignment()
     pd.apply(s)
-    holistic = HolisticFPAnalysis(reset=False)
-    offsets = MastOffsetPrecedenceAnalysis()
-    rnd = random.Random(1)
 
+    xy = []
     for i in range(1000):
         print(i)
         init_wcrt(s)
-        holistic.apply(s)
+        funca(s)
         x = invslack(s)
 
-        # init_wcrt(s)
-        # fast_holistic_fp(s)
-        # y = invslack(s)
-
         init_wcrt(s)
-        offsets.apply(s)
+        funcb(s)
         y = invslack(s)
 
-        plt.scatter(x, y, alpha=0.5)
+        xy.append((x, y))
         random_priority_jump(s, rnd)
 
+    x, y = zip(*xy)
+    ax.scatter(x, y, alpha=0.5)
+    corr = np.corrcoef(x, y)
+    return corr
+
+
+def correlation():
+    s = examples.get_small_system(random=random.Random(2), utilization=0.4)
+    holistic = HolisticFPAnalysis(reset=False)
+    offsets = MastOffsetPrecedenceAnalysis()
+
+    fig, axs = plt.subplots(nrows=2, ncols=2, figsize=(10, 8))
+    funca = lambda s: holistic.apply(s)
+
+    # 1 holistic vs offsets
+    ax = axs.flat[0]
+    c = correlation_chart(ax, funca, lambda s: offsets.apply(s), s)
+    ax.text(0.05, 0.9, f"c={c[0, 1]:.2f}", transform=ax.transAxes)
+    ax.set_title("holistic vs offsets")
+
+    setups = []
+    # 2 holistic vs fast (i=inf, p=inf, ceil=true)
+    setups.append(("holistic vs fast", -1, -1, True))
+    # 3 holistic vs fast (i=1, p=1, ceil=true)
+    setups.append(("holistic vs fast (1)", 1, 1, True))
+    # 4 holistic vs fast (i=1, p=1, ceil=false)
+    setups.append(("holistic vs fast (1, false)", 1, 1, False))
+
+    for ax, (name, i, p, ceil) in zip(axs.flat[1:], setups):
+        funcb = partial(fast_holistic_fp, ceiling=ceil, limit_i=i, limit_p=p)
+        c = correlation_chart(ax, funca, funcb, s)
+        ax.text(0.05, 0.9, f"x={c[0, 1]:.2f}", transform=ax.transAxes)
+        ax.set_title(name)
+
+
+
+    # for setup, ax in zip(setups, axs.flat):
+    #
+    #
+    # rnd = random.Random(1)
+    #
+    # xy = []
+    # for i in range(1000):
+    #     init_wcrt(s)
+    #     holistic.apply(s)
+    #     y = invslack(s)
+    #
+    #     init_wcrt(s)
+    #     fast_holistic_fp(s)
+    #     x = invslack(s)
+    #
+    #     # init_wcrt(s)
+    #     # offsets.apply(s)
+    #     # x = invslack(s)
+    #
+    #     xy.append((x,y))
+    #     random_priority_jump(s, rnd)
+    #
+    # x, y = zip(*xy)
+    # plt.scatter(x, y, alpha=0.5)
+    # corr = np.corrcoef(x, y)
+    # print(corr)
     plt.show()
 
 
