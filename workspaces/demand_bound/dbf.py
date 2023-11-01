@@ -2,7 +2,7 @@ from functools import partial
 from examples import get_palencia_system
 from model import Task, System
 from analysis import higher_priority, HolisticFPAnalysis, init_wcrt, repr_wcrts
-from mast_tools import MastHolisticAnalysis, MastOffsetPrecedenceAnalysis
+from mast_tools import MastHolisticAnalysis, MastOffsetPrecedenceAnalysis, MastOffsetAnalysis
 import math
 import numpy as np
 import matplotlib.pyplot as plt
@@ -14,8 +14,10 @@ from assignment import random_priority_jump
 from metrics import invslack
 
 
-def converge(f, x):
+def converge(f, x, stop_func=None):
     v = f(x)
+    if stop_func and stop_func(v):
+        return v
     return v if math.isclose(v, x) else converge(f, v)
 
 
@@ -68,6 +70,10 @@ def func_r(task: Task, p, r):
     return result
 
 
+def w_to_r(w, task, p):
+    return w - (p - 1) * task.period + task.jitter
+
+
 def holistic_fp_w(s: System):
     init_wcrt(s)
     rprev = np.array([task.wcrt for task in s.tasks])
@@ -81,8 +87,8 @@ def holistic_fp_w(s: System):
                 # iterate p=1,2,..., until wp is less than this bound
                 bound = p*task.period
                 f = partial(func_w, task, p)
-                wp = converge(f, p*task.wcet)
-                rp = wp - (p-1)*task.period + task.jitter
+                wp = converge(f, p*task.wcet, stop_func=lambda w: w_to_r(w, task, p) > task.flow.deadline*10)
+                rp = w_to_r(wp, task, p)
                 if rp > task.wcrt:
                     task.wcrt = rp
                 if wp <= bound or rp > 10*task.flow.deadline:
@@ -135,6 +141,8 @@ def fast_holistic_fp(s: System, ceiling=True, limit_i=-1, limit_p=-1):
                 rp = wp - (p-1)*task.period + task.jitter
                 if rp > task.wcrt:
                     task.wcrt = rp
+                if rp > 10*task.flow.deadline:
+                    return
                 if wp <= bound or p == limit_p:
                     break
                 p += 1
@@ -214,9 +222,9 @@ def correlation_chart(ax: plt.Axes, funca, funcb, s):
 
 
 def correlation():
-    s = examples.get_small_system(random=random.Random(2), utilization=0.4)
+    s = examples.get_medium_system(random=random.Random(2), utilization=0.4)
     holistic = HolisticFPAnalysis(reset=False)
-    offsets = MastOffsetPrecedenceAnalysis()
+    offsets = MastOffsetAnalysis()
 
     fig, axs = plt.subplots(nrows=2, ncols=2, figsize=(10, 8))
     funca = lambda s: holistic.apply(s)
@@ -241,36 +249,26 @@ def correlation():
         ax.text(0.05, 0.9, f"x={c[0, 1]:.2f}", transform=ax.transAxes)
         ax.set_title(name)
 
-
-
-    # for setup, ax in zip(setups, axs.flat):
-    #
-    #
-    # rnd = random.Random(1)
-    #
-    # xy = []
-    # for i in range(1000):
-    #     init_wcrt(s)
-    #     holistic.apply(s)
-    #     y = invslack(s)
-    #
-    #     init_wcrt(s)
-    #     fast_holistic_fp(s)
-    #     x = invslack(s)
-    #
-    #     # init_wcrt(s)
-    #     # offsets.apply(s)
-    #     # x = invslack(s)
-    #
-    #     xy.append((x,y))
-    #     random_priority_jump(s, rnd)
-    #
-    # x, y = zip(*xy)
-    # plt.scatter(x, y, alpha=0.5)
-    # corr = np.corrcoef(x, y)
-    # print(corr)
     plt.show()
+
+
+def anomaly():
+    s = examples.get_medium_system(random=random.Random(2), utilization=0.4)
+    pd = assignment.PDAssignment()
+    pd.apply(s)
+
+    rnd = random.Random(1)
+    for i in range(1000):
+        if i == 384:
+            print(assignment.repr_priorities(s))
+            funcb = partial(fast_holistic_fp, ceiling=True, limit_i=-1, limit_p=-1)
+            funcb(s)
+            x = invslack(s)
+            print(x)
+
+        random_priority_jump(s, rnd)
 
 
 if __name__ == '__main__':
     correlation()
+    # anomaly()
