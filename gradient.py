@@ -8,10 +8,11 @@ import numpy as np
 class StandardGradientDescent(GradientDescentFunction):
     def __init__(self,
                  extractor: Extractor,
-                 cost_function: CostFunction,
+                 cost_function: CostFunction,  # to compute at each iteration, not to compute gradient
                  stop_function: StopFunction,
                  gradient_function: GradientFunction,
                  update_function: UpdateFunction,
+                 ref_cost_function = None,  # secondary cost function just to visualize each iteration, not to optimize
                  callback=None,
                  verbose=False):
         self.extractor = extractor
@@ -19,6 +20,7 @@ class StandardGradientDescent(GradientDescentFunction):
         self.stop_function = stop_function
         self.gradient_function = gradient_function
         self.update_function = update_function
+        self.ref_cost_function = ref_cost_function
         self.callback = callback
         self.verbose = verbose
 
@@ -37,7 +39,11 @@ class StandardGradientDescent(GradientDescentFunction):
                 self.callback(t, S, x, xb, cost, best)
 
             if self.verbose:
-                print(f"iteration={t}: cost={cost:.3f} best={best:.3f}")
+                msg = f"iteration={t}: cost={cost:.3f} best={best:.3f}"
+                if self.ref_cost_function:
+                    ref_cost = self.ref_cost_function.apply(S, x)
+                    msg += f" ref={ref_cost:.3f}"
+                print(msg)
 
             stop = self.stop_function.apply(S, x, cost, t)
             if stop:
@@ -125,18 +131,20 @@ class StandardGradient(GradientFunction):
         self.delta_function = delta_function
         self.batch_cost_function = batch_cost_function
 
-    def _gradient_inputs(self, x, deltas) -> [[float]]:
+    @staticmethod
+    def _gradient_inputs(x, deltas) -> [[float]]:
         ret = []
         for i in range(len(x)):
             vector = x[:]
-            vector[i] += deltas[i % len(deltas)]
+            vector[i] += deltas[i]
             ret.append(vector)
             vector = x[:]
-            vector[i] -= deltas[i % len(deltas)]
+            vector[i] -= deltas[i]
             ret.append(vector)
         return ret
 
-    def _gradient_from_costs(self, costs, deltas) -> [float]:
+    @staticmethod
+    def _gradient_from_costs(costs, deltas) -> [float]:
         gradient = [0] * int(len(costs) / 2)
         for i in range(len(gradient)):
             gradient[i] = (costs[2*i] - costs[2*i + 1]) / \
@@ -157,7 +165,7 @@ class AvgSeparationDelta(DeltaFunction):
 
     def apply(self, S: System, x: [float]) -> [float]:
         seps = [abs(x[i + 1] - x[i]) for i in range(len(x) - 1)]
-        return [self.factor * sum(seps) / len(seps)]
+        return [self.factor * sum(seps) / len(seps)]*len(x)
 
 
 class StandardStop(StopFunction):
