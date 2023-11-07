@@ -222,7 +222,7 @@ def correlation_chart(ax: plt.Axes, funca, funcb, s):
 
 
 def correlation():
-    s = examples.get_medium_system(random=random.Random(2), utilization=0.4)
+    s = examples.get_small_system(random=random.Random(42), utilization=0.7, balanced=True)
     holistic = HolisticFPAnalysis(reset=False)
     offsets = MastOffsetAnalysis()
 
@@ -246,7 +246,7 @@ def correlation():
     for ax, (name, i, p, ceil) in zip(axs.flat[1:], setups):
         funcb = partial(fast_holistic_fp, ceiling=ceil, limit_i=i, limit_p=p)
         c = correlation_chart(ax, funca, funcb, s)
-        ax.text(0.05, 0.9, f"x={c[0, 1]:.2f}", transform=ax.transAxes)
+        ax.text(0.05, 0.9, f"c={c[0, 1]:.2f}", transform=ax.transAxes)
         ax.set_title(name)
 
     plt.show()

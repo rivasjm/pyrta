@@ -35,15 +35,25 @@ class BatchCostFunction:
 class StopFunction:
     """Class to determine if the optimization process must stop for the given state, represented by the
     given parameters, cost value and iteration number"""
-    def apply(self, S: System, x: [float], cost: float, t: int) -> bool:
+    def should_stop(self, S: System, x: [float], cost: float, t: int) -> bool:
         """Returns true if the optimization process must stop given the current state"""
         pass
+
+    def solution(self):
+        """Returns the solution it considers best. May return several solutions"""
+        pass
+
+    def solution_cost(self):
+        """Returns the cost value of the solution"""
+        pass
+
 
 class DeltaFunction:
     """Class to calculate the delta with which compute the gradient"""
     def apply(self, S: System, x: [float]) -> [float]:
         """Returns true if the optimization process must stop given the current state"""
         pass
+
 
 class GradientFunction:
     """Class to compute the gradient at the given parameters"""

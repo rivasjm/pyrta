@@ -6,6 +6,7 @@ from vector import VectorHolisticFPBatchCosts
 from evaluation import SchedRatioEval
 from examples import get_system
 from random import Random
+from fast_analysis import FastHolisticFPAnalysis
 
 
 def gdpa_fp_vector(system: System) -> bool:
@@ -25,6 +26,55 @@ def gdpa_fp_vector(system: System) -> bool:
                                         update_function=update_function,
                                         verbose=False)
 
+    pd = PDAssignment(normalize=True)
+    pd.apply(system)
+    optimizer.apply(system)
+    analysis.apply(system)
+    return system.is_schedulable()
+
+
+def gdpa_fp(system: System) -> bool:
+    analysis = HolisticFPAnalysis(limit_factor=10, reset=False)
+    extractor = PriorityExtractor()
+    cost_function = InvslackCost(extractor=extractor, analysis=analysis)
+    stop_function = StandardStop(limit=100)
+    delta_function = AvgSeparationDelta(factor=1.5)
+    batch_cost_function = SequentialBatchCostFunction(cost_function=cost_function)
+    gradient_function = StandardGradient(delta_function=delta_function,
+                                         batch_cost_function=batch_cost_function)
+    update_function = NoisyAdam()
+    optimizer = StandardGradientDescent(extractor=extractor,
+                                        cost_function=cost_function,
+                                        stop_function=stop_function,
+                                        gradient_function=gradient_function,
+                                        update_function=update_function,
+                                        verbose=False)
+    pd = PDAssignment(normalize=True)
+    pd.apply(system)
+    optimizer.apply(system)
+    analysis.apply(system)
+    return system.is_schedulable()
+
+
+def gdpa_fp_fast(system: System) -> bool:
+    analysis = HolisticFPAnalysis(limit_factor=10, reset=False)
+    fast_analysis = FastHolisticFPAnalysis(limit_factor=10, limit_p=-1, limit_i=-1, ceiling=True, fast=False)
+    extractor = PriorityExtractor()
+    fast_cost_function = InvslackCost(extractor=extractor, analysis=fast_analysis)
+    real_cost_function = InvslackCost(extractor=extractor, analysis=analysis)
+    stop_function = StandardStop(limit=100)
+    delta_function = AvgSeparationDelta(factor=1.5)
+    batch_cost_function = SequentialBatchCostFunction(cost_function=fast_cost_function)
+    gradient_function = StandardGradient(delta_function=delta_function,
+                                         batch_cost_function=batch_cost_function)
+    update_function = NoisyAdam()
+    optimizer = StandardGradientDescent(extractor=extractor,
+                                        cost_function=real_cost_function,
+                                        stop_function=stop_function,
+                                        gradient_function=gradient_function,
+                                        update_function=update_function,
+                                        ref_cost_function=real_cost_function,
+                                        verbose=False)
     pd = PDAssignment(normalize=True)
     pd.apply(system)
     optimizer.apply(system)
@@ -55,15 +105,16 @@ if __name__ == '__main__':
     n = 50
     systems = [get_system(size, rnd, balanced=True, name=str(i),
                           deadline_factor_min=0.5,
-                          deadline_factor_max=1) for i in range(50)]
+                          deadline_factor_max=1) for i in range(n)]
 
     # utilizations between 50 % and 90 %
     utilizations = np.linspace(0.5, 0.9, 20)
 
-    tools = [("gdpa", gdpa_fp_vector),
+    tools = [("gdpa", gdpa_fp),
+             ("gdpa_fast", gdpa_fp_fast),
              ("hopa", hopa_fp),
              ("pd", pd_fp)]
     labels, funcs = zip(*tools)
     runner = SchedRatioEval("test", labels=labels, funcs=funcs,
-                          systems=systems, utilizations=utilizations, threads=8)
+                            systems=systems, utilizations=utilizations, threads=6)
     runner.run()

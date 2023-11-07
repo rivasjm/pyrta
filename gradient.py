@@ -8,11 +8,11 @@ import numpy as np
 class StandardGradientDescent(GradientDescentFunction):
     def __init__(self,
                  extractor: Extractor,
-                 cost_function: CostFunction,  # to compute at each iteration, not to compute gradient
+                 cost_function: CostFunction,   # to compute cost at each iteration, not to compute gradient
                  stop_function: StopFunction,
                  gradient_function: GradientFunction,
                  update_function: UpdateFunction,
-                 ref_cost_function = None,  # secondary cost function just to visualize each iteration, not to optimize
+                 ref_cost_function = None,      # secondary cost function for logging, not to optimize
                  callback=None,
                  verbose=False):
         self.extractor = extractor
@@ -26,26 +26,30 @@ class StandardGradientDescent(GradientDescentFunction):
 
     def apply(self, S: System) -> [float]:
         t = 1
-        best = float('inf')     # best cost value
+        best = float('inf')     # best cost value, for logging purposes, not necessarily the cost of the solution
+        ref_cost = None         # optional alternative cost value, just for logging purposes
         x = self.extractor.extract(S)
-        xb = x                  # best input
+        xb = x                  # best input, for logging purposes, not necessarily returned as solution
+
         while True:
             cost = self.cost_function.apply(S, x)
             if cost < best:
                 best = cost
                 xb = x
 
-            if self.callback:
-                self.callback(t, S, x, xb, cost, best)
+            if self.ref_cost_function:
+                ref_cost = self.ref_cost_function.apply(S, x)
 
             if self.verbose:
                 msg = f"iteration={t}: cost={cost:.3f} best={best:.3f}"
                 if self.ref_cost_function:
-                    ref_cost = self.ref_cost_function.apply(S, x)
                     msg += f" ref={ref_cost:.3f}"
                 print(msg)
 
-            stop = self.stop_function.apply(S, x, cost, t)
+            if self.callback:
+                self.callback(t, S, x, xb, cost, best, ref_cost)
+
+            stop = self.stop_function.should_stop(S, x, cost, t)
             if stop:
                 break
 
@@ -54,11 +58,16 @@ class StandardGradientDescent(GradientDescentFunction):
             x = [a + b for a, b in zip(x, update)]
             t = t + 1
 
+            # insert into system, extract again to get x properly compressed
             self.extractor.insert(S, x)
             x = self.extractor.extract(S)
 
-        self.extractor.insert(S, xb)
-        return xb
+        solution = self.stop_function.solution()
+        self.extractor.insert(S, solution)
+        if self.verbose:
+            print(f"Returning solution with cost={self.stop_function.solution_cost():.3f}")
+
+        return solution
 
 
 class DeadlineExtractor(Extractor):
@@ -171,9 +180,39 @@ class AvgSeparationDelta(DeltaFunction):
 class StandardStop(StopFunction):
     def __init__(self, limit=100):
         self.limit = limit
+        self.best = float("inf")  # best cost value
+        self.xb = None            # best solution
 
-    def apply(self, S: System, x: [float], cost: float, t: int) -> bool:
+    def should_stop(self, S: System, x: [float], cost: float, t: int) -> bool:
+        if cost < self.best:
+            self.best = cost
+            self.xb = x
         return cost < 0 or t > self.limit
+
+    def solution(self):
+        return self.xb
+
+    def solution_cost(self):
+        return self.best
+
+
+class FixedIterationsStop(StopFunction):
+    def __init__(self, iterations=100):
+        self.iterations = iterations
+        self.best = float("inf")  # best cost value
+        self.xb = None            # best solution
+
+    def should_stop(self, S: System, x: [float], cost: float, t: int) -> bool:
+        if cost < self.best:
+            self.best = cost
+            self.xb = x
+        return t > self.iterations
+
+    def solution(self):
+        return self.xb
+
+    def solution_cost(self):
+        return self.best
 
 
 class SequentialBatchCostFunction(BatchCostFunction):

@@ -39,10 +39,7 @@ class SchedRatioEval:
                 for scheds in pool.imap_unordered(f, self.systems):
                     job += 1
                     results[u_index, :] += scheds
-
-                    print(".", end="")
-                    if job % 25 == 0:
-                        print(f"\n{datetime.now()} : job={job}")
+                    print(f"{datetime.now()} : u={u} job={job}")
 
             # update results file
             self._save(results)
