@@ -239,7 +239,7 @@ class GradientNoise(UpdateFunction):
         # noise added to the gradients helps with the optimization
         # the noise decays with the iterations
         # for big systems (e.g. 10x10x5), it is beneficial to reduce the noise added, so
-        # I added a reducing factor to the noise (len(coeffs)): bigger systems -> less noise
+        # I added a reducing factor to the noise (len(nabla)): bigger systems need less noise
         # for smaller systems, this reduction seems to not affect negatively
         std = self.lr / (1 + t + len(nabla)) ** self.gamma
         noise = self.rng.normal(0, std, len(nabla))

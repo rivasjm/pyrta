@@ -6,7 +6,7 @@ import math
 
 
 def func_w(task: Task, p, w, ceiling=True):
-    """eq (1) from the paper 'On the Schedulability ....'"""
+    """w function, eq (1) from the paper 'On the Schedulability ....'"""
     hp = higher_priority(task)
     ceil = np.ceil if ceiling else lambda x: x
     result = (p * task.wcet
@@ -20,7 +20,8 @@ def func_r(w, p, task):
 
 
 def fast_converge(f, x2):
-    """Fast converge function f (not exact but faster than recursive solution)"""
+    """Fast converge function f (not exact but faster than recursive solution).
+    This is an intersection netween 2 lines: one that mimics the w function, and line y=x"""
     x1 = 0
     y1 = f(x1)
     y2 = f(x2)
