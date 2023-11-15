@@ -96,6 +96,17 @@ class PDAssignment:
                 task.deadline = d
 
 
+class EQSAssignment:
+    def apply(self):
+        pass
+
+    @staticmethod
+    def compute_deadlines(system: System):
+        for flow in system:
+            for j, task in enumerate(reversed(flow.tasks)):
+                
+
+
 class HOPAssignment:
     def __init__(self, analysis, iterations=40, k_pairs=None, patience=40, over_iterations=0,
                  callback=None, normalize=False, globalize=False, verbose=False):

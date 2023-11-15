@@ -83,7 +83,6 @@ class HolisticGlobalEDFAnalysis:
         else:
             return self._wa(task, deadline_activation, p, wa)
 
-
     @staticmethod
     def _wi(task: Task, t: float, D: float) -> float:
         value = min(math.ceil((t+task.jitter)/task.period), math.floor((task.jitter + D - task.deadline)/task.period)+1)

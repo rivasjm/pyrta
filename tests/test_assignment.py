@@ -28,6 +28,5 @@ class PDTest(unittest.TestCase):
             self.assertAlmostEqual(e, r, delta=0.0001)
 
 
-
 if __name__ == '__main__':
     unittest.main()

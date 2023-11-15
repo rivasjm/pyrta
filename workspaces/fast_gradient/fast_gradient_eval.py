@@ -74,7 +74,7 @@ def gdpa_fp_fast(system: System, limit_p=1, limit_i=1, ceiling=False, fast=True,
                                          batch_cost_function=batch_cost_function)
     update_function = NoisyAdam(lr=lr, beta1=beta1, beta2=beta2, epsilon=epsilon, gamma=gamma)
     optimizer = StandardGradientDescent(extractor=extractor,
-                                        cost_function=real_cost_function,
+                                        cost_function=fast_cost_function,
                                         stop_function=stop_function,
                                         gradient_function=gradient_function,
                                         update_function=update_function,
@@ -114,24 +114,10 @@ if __name__ == '__main__':
     # utilizations between 50 % and 90 %
     utilizations = np.linspace(0.5, 0.9, 20)
 
-    # tools = [("gdpa", gdpa_fp_vector),
-    #          ("gdpa_fast", gdpa_fp_fast),
-    #          ("hopa", hopa_fp),
-    #          ("pd", pd_fp)]
-
-    fast1 = partial(gdpa_fp_fast, limit_p=1, limit_i=1, ceiling=False, fast=True,
-            delta=1.5, lr=3, beta1=0.9, beta2=0.999, epsilon=0.1, gamma=0.9)
-
-    fast2 = partial(gdpa_fp_fast, limit_p=-1, limit_i=-1, ceiling=False, fast=True,
-                    delta=1.5, lr=3, beta1=0.9, beta2=0.999, epsilon=0.1, gamma=0.9)
-
-    fast3 = partial(gdpa_fp_fast, limit_p=-1, limit_i=-1, ceiling=True, fast=False,
-                    delta=1.5, lr=3, beta1=0.9, beta2=0.999, epsilon=0.1, gamma=0.9)
-
-    tools = [("gdpa_fast1", fast1),
-             ("gdpa_fast2", fast2),
-             ("gdpa_fast3", fast3)
-             ]
+    tools = [("gdpa", gdpa_fp_vector),
+             ("gdpa_fast", gdpa_fp_fast),
+             ("hopa", hopa_fp),
+             ("pd", pd_fp)]
 
     labels, funcs = zip(*tools)
     runner = SchedRatioEval("test", labels=labels, funcs=funcs,
