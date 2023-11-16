@@ -97,17 +97,35 @@ class PDAssignment:
 
 
 class EQSAssignment:
-    def apply(self):
-        pass
+    def apply(self, system: System):
+        self.compute_deadlines(system)
+        calculate_priorities(system)
 
     @staticmethod
     def compute_deadlines(system: System):
         for flow in system:
             s = 0
             n = len(flow.tasks)
-            for j, task in enumerate(reversed(flow.tasks)):
+            for j in reversed(range(len(flow.tasks))):
+                task = flow[j]
                 s += task.wcet
-                task.deadline = task.wcet + (flow.deadline - s)/(n - j + 1)
+                task.deadline = task.wcet + (flow.deadline - s)/(n - (j+1) + 1)
+
+
+class EQFAssignment:
+    def apply(self, system: System):
+        self.compute_deadlines(system)
+        calculate_priorities(system)
+
+    @staticmethod
+    def compute_deadlines(system: System):
+        for flow in system:
+            s = 0
+            n = len(flow.tasks)
+            for j in reversed(range(len(flow.tasks))):
+                task = flow[j]
+                s += task.wcet
+                task.deadline = task.wcet + (flow.deadline-s)*(task.wcet/s)
 
 
 class HOPAssignment:
