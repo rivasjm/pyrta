@@ -103,8 +103,11 @@ class EQSAssignment:
     @staticmethod
     def compute_deadlines(system: System):
         for flow in system:
+            s = 0
+            n = len(flow.tasks)
             for j, task in enumerate(reversed(flow.tasks)):
-                
+                s += task.wcet
+                task.deadline = task.wcet + (flow.deadline - s)/(n - j + 1)
 
 
 class HOPAssignment:
