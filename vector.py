@@ -205,16 +205,19 @@ def priority_matrix(priorities):
     return P
 
 
-def get_vectors(system: System):
+def get_vectors(system: System, single_precision=False):
     """Transform a system into vectors. The vectorized analysis is based on these vectors"""
+    float_type = np.float32 if single_precision else np.float64
+    int_type = np.int32 if single_precision else np.int64
+
     tasks = system.tasks
     t = len(tasks)
-    wcets = np.zeros((t, 1), dtype=np.float64)
-    periods = np.zeros((t, 1), dtype=np.float64)
-    deadlines = np.zeros((t, 1), dtype=np.float64)
-    successors = np.zeros((t, 1), dtype=np.int64)
+    wcets = np.zeros((t, 1), dtype=float_type)
+    periods = np.zeros((t, 1), dtype=float_type)
+    deadlines = np.zeros((t, 1), dtype=float_type)
+    successors = np.zeros((t, 1), dtype=int_type)
     mappings = np.zeros((t, 1), dtype=object)
-    priorities = np.zeros((t, 1), dtype=np.float64)
+    priorities = np.zeros((t, 1), dtype=float_type)
 
     taskmap = {task: i for i, task in enumerate(tasks)}
 

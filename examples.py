@@ -37,6 +37,33 @@ def get_palencia_system() -> System:
     return system
 
 
+def get_three_tasks() -> System:
+    system = System()
+
+    # 1 cpu
+    cpu = Processor(name="cpu", sched=SchedulerType.FP)
+    system.add_procs(cpu)
+
+    # priority levels
+    HIGH = 10
+    MEDIUM = 5
+    LOW = 1
+
+    # 1 flows
+    flow = Flow(name="flow", period=30, deadline=90)
+
+    # tasks
+    flow.add_tasks(
+        Task(name="a1", wcet=2, priority=HIGH, processor=cpu),
+        Task(name="a2", wcet=5, priority=MEDIUM, processor=cpu),
+        Task(name="a3", wcet=20, priority=LOW, processor=cpu)
+    )
+
+    system.add_flows(flow)
+    system.name = "three_tasks"
+    return system
+
+
 def get_system(size, random=Random(), utilization=0.5, balanced=False, name=None,
                deadline_factor_min=0.5, deadline_factor_max=1, sched: SchedulerType = SchedulerType.FP) -> System:
     n_flows, t_tasks, n_procs = size

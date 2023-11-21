@@ -26,9 +26,9 @@ class StandardGradientDescent(GradientDescentFunction):
 
     def apply(self, S: System) -> [float]:
         t = 1
+        x = self.extractor.extract(S)  # initial input
         best = float('inf')     # best cost value, for logging purposes, not necessarily the cost of the solution
         ref_cost = None         # optional alternative cost value, just for logging purposes
-        x = self.extractor.extract(S)
         xb = x                  # best input, for logging purposes, not necessarily returned as solution
 
         while True:
