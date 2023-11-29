@@ -1,4 +1,4 @@
-from model import System, Processor, Flow, Task, TaskType
+from model import System, Processor, Flow, Task, TaskType, SchedulerType
 from mast_constants import MAX_PRIORITY
 import textwrap
 
@@ -73,6 +73,9 @@ class ProcessorAdapter:
         return literal
 
     def scheduler(self) -> str:
+        return self.fp_scheduler() if self.processor.sched == SchedulerType.FP else self.edf_scheduler()
+
+    def fp_scheduler(self) -> str:
         literal = textwrap.dedent(f"""\
         Scheduler (
            Type            => Primary_Scheduler,
@@ -85,6 +88,19 @@ class ProcessorAdapter:
                 Best_Context_Switch  => 0.00,
                 Max_Priority         => {MAX_PRIORITY},
                 Min_Priority         => 1))""")
+        return literal
+
+    def edf_scheduler(self) -> str:
+        literal = textwrap.dedent(f"""\
+        Scheduler (
+           Type            => Primary_Scheduler,
+           Name            => {scheduler_name(self.processor)},
+           Host            => {scheduler_host(self.processor)},
+           Policy          => 
+              ( Type                 => {self.processor.sched.value},
+                Worst_Context_Switch => 0.00,
+                Avg_Context_Switch   => 0.00,
+                Best_Context_Switch  => 0.00))""")
         return literal
 
 
@@ -103,12 +119,23 @@ class TaskAdapter:
            Scheduler                  => {scheduler_name(self.task.processor)})""")
         return literal
 
-    def server_sched_parameter(self):
+    def server_fp_sched_parameter(self):
         literal = textwrap.dedent(f"""\
         (Type         => {self.task.processor.sched.value}_Policy,
          The_Priority => {self.task.priority},
          Preassigned  => NO)""")
         return literal
+
+    def server_edf_sched_parameter(self):
+        literal = textwrap.dedent(f"""\
+        (Type         => {self.task.processor.sched.value}_policy,
+         Deadline => {self.task.priority},
+         Preassigned  => NO)""")
+        return literal
+
+    def server_sched_parameter(self):
+        return self.server_fp_sched_parameter() if (
+                self.task.processor.sched == SchedulerType.FP) else self.server_edf_sched_parameter()
 
     def operation(self):
         if self.task.type != TaskType.Activity:

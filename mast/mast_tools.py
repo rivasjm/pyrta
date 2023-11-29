@@ -25,18 +25,19 @@ class MastAssignment(Enum):
 # region MAST Wrappers
 
 class MastWrapper:
-    def __init__(self, analysis: MastAnalysis, assignment=MastAssignment.NONE, limit_factor=100):
+    def __init__(self, analysis: MastAnalysis, assignment=MastAssignment.NONE, limit_factor=100, local=False):
         self.analysis = analysis
         self.assignment = assignment
         self.limit_factor = limit_factor
+        self.local = local
 
     def apply(self, system: System) -> None:
-        analyze(system, self.analysis, self.assignment, limit=self.limit_factor)
+        analyze(system, self.analysis, self.assignment, limit=self.limit_factor, local=self.local)
 
 
 class MastHolisticAnalysis(MastWrapper):
-    def __init__(self, assignment=MastAssignment.NONE, limit_factor=100):
-        super().__init__(MastAnalysis.HOLISTIC, assignment=assignment, limit_factor=limit_factor)
+    def __init__(self, assignment=MastAssignment.NONE, limit_factor=100, local=False):
+        super().__init__(MastAnalysis.HOLISTIC, assignment=assignment, limit_factor=limit_factor, local=local)
 
 
 class MastOffsetAnalysis(MastWrapper):
@@ -54,7 +55,8 @@ class MastOffsetPrecedenceAnalysis(MastWrapper):
 
 # region MAST Analysis
 
-def analyze(system: System, analysis: MastAnalysis, assignment: MastAssignment = MastAssignment.NONE, limit=1e100):
+def analyze(system: System, analysis: MastAnalysis, assignment: MastAssignment = MastAssignment.NONE,
+            limit=1e100, local=False):
     # create random temporary file names for this analysis, will be removed afterwards
     temp_dir = tempfile.TemporaryDirectory()
     name = str(uuid.uuid1())
@@ -70,7 +72,7 @@ def analyze(system: System, analysis: MastAnalysis, assignment: MastAssignment =
         export(system, input)
 
         # analyze with mast, capture results
-        schedulable, results = run(analysis, assignment, input, output, limit)
+        schedulable, results = run(analysis, assignment, input, output, limit, local=local)
 
         # save wcrts into the system
         for task in system.tasks:
@@ -99,7 +101,7 @@ def clear_files(*files):
                     pass
 
 
-def run(analysis: MastAnalysis, assignment: MastAssignment, input, output=None, limit=None, timeout=None,
+def run(analysis: MastAnalysis, assignment: MastAssignment, input, output=None, limit=None, local=False, timeout=None,
         print_output=False, verbose=False):
     c = config.get_config()
     mast_path = c['mast_path'] if 'mast_path' in c else "mast_analysis.exe"
@@ -112,6 +114,8 @@ def run(analysis: MastAnalysis, assignment: MastAssignment, input, output=None, 
     if limit:
         cmd.append("-f")
         cmd.append(str(limit))
+    if local:
+        cmd.append("-local")
     if verbose:
         cmd.append("-v")
     cmd.append(input)

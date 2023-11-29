@@ -2,7 +2,7 @@ import random
 import unittest
 
 import examples
-from mast import MastHolisticAnalysis, MastOffsetAnalysis, MastAssignment, MastOffsetPrecedenceAnalysis
+from mast_tools import MastHolisticAnalysis, MastOffsetAnalysis, MastAssignment, MastOffsetPrecedenceAnalysis
 from generator import to_edf
 from examples import get_palencia_system, get_small_system, get_medium_system, get_big_system
 from analysis import repr_wcrts, reset_wcrt, HolisticFPAnalysis, HolisticGlobalEDFAnalysis

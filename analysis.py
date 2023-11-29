@@ -53,7 +53,7 @@ class HolisticLocalEDFAnalysis:
         return {v for v in psi if (p - 1) * task.period + task.deadline <= v < p * task.period + task.deadline}
 
     @staticmethod
-    def _ra(cls, task, psi, p, wab):
+    def _ra(task, psi, p, wab):
         """Eq (9)"""
         rab = wab - (psi - task.deadline - task.jitter)
         return rab
@@ -66,7 +66,7 @@ class HolisticLocalEDFAnalysis:
         if math.isclose(wab, wab_prev):
             return wab
         else:
-            return cls._wa(task, psi, p, wab)
+            return cls._wab(task, psi, p, wab)
 
     def apply(self, system: System) -> None:
         init_wcrt(system)
@@ -98,7 +98,7 @@ class HolisticLocalEDFAnalysis:
         """task: task under analysis"""
         max_r = 0
         for p in range(1, math.ceil(length/task.period) + 1):
-            psi_set = self._set_psi(task.processor, length, p)
+            psi_set = self._set_psi(task, length, p)
             for psi in psi_set:
                 w = self._wab(task, psi, p, 0)  # converges to a w value
                 r = self._ra(task, psi, p, w)
