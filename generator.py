@@ -79,6 +79,17 @@ def to_edf(system: System):
     return system
 
 
+def to_int(system: System):
+    for flow in system:
+        flow.period = int(flow.period)
+        flow.deadline = int(flow.deadline)
+        for task in flow.tasks:
+            task.wcet = int(task.wcet)
+            task.deadline = int(task.deadline)
+            task.priority = int(task.priority)
+    return system
+
+
 def copy(system: System):
     new_procs = {proc.name: Processor(name=proc.name, sched=proc.sched) for proc in system.processors}
     new_system = System()
