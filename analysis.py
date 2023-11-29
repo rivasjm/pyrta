@@ -15,8 +15,9 @@ class HolisticLocalEDFAnalysis:
     @staticmethod
     def _wi(task: Task, t: float, D: float) -> float:
         """Eq (1)"""
-        value = min(math.ceil((t+task.jitter)/task.period), math.floor((task.jitter + D - task.deadline)/task.period)+1)
-        return value * task.wcet if value > 0 else 0
+        v1 = math.ceil((t+task.jitter)/task.period)  # eq (2)
+        v2 = math.floor((task.jitter + D - task.deadline)/task.period)+1 if D >= task.deadline else 0
+        return min(v1, v2) * task.wcet
 
     @staticmethod
     def _activations(task: Task, length: float) -> int:
@@ -55,7 +56,7 @@ class HolisticLocalEDFAnalysis:
     @staticmethod
     def _ra(task, psi, p, wab):
         """Eq (9)"""
-        rab = wab - (psi - task.deadline - task.jitter)
+        rab = wab - psi + task.deadline + task.jitter
         return rab
 
     @classmethod

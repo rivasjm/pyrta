@@ -129,7 +129,7 @@ class TaskAdapter:
     def server_edf_sched_parameter(self):
         literal = textwrap.dedent(f"""\
         (Type         => {self.task.processor.sched.value}_policy,
-         Deadline => {self.task.priority},
+         Deadline => {self.task.deadline},
          Preassigned  => NO)""")
         return literal
 

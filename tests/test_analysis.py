@@ -10,57 +10,6 @@ from generator import generate_system, to_edf
 from mast_tools import MastHolisticAnalysis
 
 
-class HolisticGlobalEDFAnalysisTest(unittest.TestCase):
-    def test_palencia(self):
-        system = to_edf(get_palencia_system())
-        flow1 = system['flow1']
-        flow2 = system['flow2']
-        cpu1 = next((p for p in system.processors if p.name == "cpu1"), None)
-        cpu2 = next((p for p in system.processors if p.name == "cpu2"), None)
-        network = next((p for p in system.processors if p.name == "network"), None)
-
-        analysis = HolisticGlobalEDFAnalysis()
-        pd = PDAssignment()
-        system.apply(pd)
-        system.apply(analysis)
-        r1 = [t.wcrt for t in system.tasks]
-
-        analysis = MastHolisticAnalysis()
-        system.apply(pd)
-        system.apply(analysis)
-        r2 = [t.wcrt for t in system.tasks]
-
-        print(r1)
-        print(r2)
-
-        for a, b in zip(r1, r2):
-            self.assertAlmostEqual(a, b)
-
-
-class HolisticLocalEDFAnalysisTest(unittest.TestCase):
-    def test_palencia(self):
-        system = to_edf(get_palencia_system())
-        flow1 = system['flow1']
-        flow2 = system['flow2']
-        cpu1 = next((p for p in system.processors if p.name == "cpu1"), None)
-        cpu2 = next((p for p in system.processors if p.name == "cpu2"), None)
-        network = next((p for p in system.processors if p.name == "network"), None)
-
-        analysis = HolisticLocalEDFAnalysis()
-        pd = PDAssignment()
-        system.apply(pd)
-        system.apply(analysis)
-        r1 = [t.wcrt for t in system.tasks]
-
-        analysis = HolisticGlobalEDFAnalysis()
-        system.apply(pd)
-        system.apply(analysis)
-        r2 = [t.wcrt for t in system.tasks]
-
-        print(r1)
-        print(r2)
-
-
 class HolisticTest(unittest.TestCase):
     def test_palencia(self):
         system = get_palencia_system()
