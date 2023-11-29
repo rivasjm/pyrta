@@ -1,5 +1,6 @@
 from examples import get_three_tasks
-from vector import get_vectors, priority_matrix, successor_matrix, jitter_matrix
+from gradient_funcs import BatchCostFunction
+from vector import successor_matrix, jitter_matrix
 from model import System
 import numpy as np
 from analysis import init_wcrt
@@ -23,32 +24,36 @@ def vectors(S: System):
 
 
 def priority_matrix(priorities, mappings):
-    return priorities.T < priorities * (mappings.T == mappings)
+    t, s = priorities.shape
+    planes = priorities.ravel(order='F').reshape(s, t, 1)
+    return planes < planes.transpose(0, 2, 1) * (mappings == mappings.T)
 
 
-class FastGDPA:
-    def apply(self, S: System):
+class FastHolisticBatchCosts(BatchCostFunction):
+    def apply(self, S: System, inputs: [[float]]) -> [float]:
         init_wcrt(S)
 
-        wcets, periods, priorities, deadlines, mappings, successors, jitters = vectors(S)
+        wcets, periods, _, deadlines, mappings, successors, jitters = vectors(S)
+        priorities = np.array(inputs).transpose()
         pm = priority_matrix(priorities, mappings)
-        shape = wcets.T.shape
+        shape = (pm.shape[0], pm.shape[1], 1)
         p = 1
 
         x1 = np.zeros_like(wcets).T
-        y1 = p*wcets.T + np.sum(pm*(jitters + x1) * wcets / periods, axis=1).reshape(shape)
+        y1 = p*wcets.T + np.sum(pm*(jitters + x1) * wcets / periods, axis=2).reshape(shape)
+        x2 = (deadlines - jitters).reshape(x1.shape)
+        y2 = p*wcets.T + np.sum(pm*(jitters + x2) * wcets / periods, axis=2).reshape(shape)
+        r = y1/(1-(y2-y1)/(x2-x1)) + jitters.T
 
-        x2 = (deadlines - jitters).reshape(shape)
-        y2 = p*wcets.T + np.sum(pm*(jitters + x2) * wcets / periods, axis=1).reshape(shape)
-
-        sol = y1/(1-(y2-y1)/(x2-x1))
-        # print(y1)
-        # print(y2)
-        return sol
+        invslack = np.max((r-deadlines.T)/deadlines.T, axis=1).reshape((-1, ))
+        return invslack.tolist()
 
 
 if __name__ == '__main__':
-    fgdpa = FastGDPA()
+    batch = FastHolisticBatchCosts()
+    input = [[10, 5, 1], [1, 5, 10]]
     s = get_three_tasks()
-    fgdpa.apply(s)
+    invslack = batch.apply(s, input)
+    print(invslack)
+
 

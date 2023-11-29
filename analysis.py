@@ -2,6 +2,118 @@ from model import Task, System, Processor, save_attrs, restore_attrs
 import math
 
 
+class HolisticLocalEDFAnalysis:
+    """
+    Based on paper "Optimized Deadline Assignment and schedulability Analysis for Distributed Real-Time Systems
+    with Local EDF Scheduling
+    """
+    def __init__(self, limit_factor=10, reset=True, verbose=False):
+        self.limit_factor = limit_factor
+        self.reset = reset
+        self.verbose = verbose
+
+    @staticmethod
+    def _wi(task: Task, t: float, D: float) -> float:
+        """Eq (1)"""
+        value = min(math.ceil((t+task.jitter)/task.period), math.floor((task.jitter + D - task.deadline)/task.period)+1)
+        return value * task.wcet if value > 0 else 0
+
+    @staticmethod
+    def _activations(task: Task, length: float) -> int:
+        """Eq (2)"""
+        return math.ceil((length+task.jitter)/task.period)
+
+    @classmethod
+    def _longest_busy_period(cls, proc: Processor, l_prev: float) -> float:
+        """Eq (5)"""
+        length = sum(map(lambda t: math.ceil((l_prev+t.jitter)/t.period)*t.wcet, proc.tasks))
+        if math.isclose(length, l_prev):
+            return length
+        else:
+            return cls._longest_busy_period(proc, length)
+
+    @classmethod
+    def _set_psi_ij(cls, proc: Processor, busy_period: float):
+        """Eq (4)"""
+        psi_ij = {(p-1)*task.period - task.jitter + task.deadline
+                  for task in proc.tasks for p in range(1, cls._activations(task, busy_period)+1)}
+        return psi_ij
+
+    @classmethod
+    def _set_psi_ab(cls, task: Task, busy_period: float):
+        """Eq (6)"""
+        psi_ab = {(p - 1) * task.period + task.deadline
+                  for p in range(1, math.ceil(busy_period/task.period) + 1)}
+        return psi_ab
+
+    @classmethod
+    def _set_psi(cls, task: Task, busy_period: float, p: int):
+        """Eq (10)"""
+        psi = cls._set_psi_ij(task.processor, busy_period) | cls._set_psi_ab(task, busy_period)
+        return {v for v in psi if (p - 1) * task.period + task.deadline <= v < p * task.period + task.deadline}
+
+    @staticmethod
+    def _ra(cls, task, psi, p, wab):
+        """Eq (9)"""
+        rab = wab - (psi - task.deadline - task.jitter)
+        return rab
+
+    @classmethod
+    def _wab(cls, task, psi, p, wab_prev):
+        """Eq (8)"""
+        wab = p*task.wcet + sum(map(lambda t: cls._wi(t, wab_prev, psi),
+                                    [t for t in task.processor.tasks if t != task]))
+        if math.isclose(wab, wab_prev):
+            return wab
+        else:
+            return cls._wa(task, psi, p, wab)
+
+    def apply(self, system: System) -> None:
+        init_wcrt(system)
+        try:
+            while True:
+                changed = False
+                for proc in system.processors:
+                    changed |= self._proc_analysis(proc)
+                if not changed:
+                    break
+        except LimitFactorReachedException as e:
+            if self.verbose:
+                print(e.message)
+            if self.reset:
+                reset_wcrt(system)
+            else:
+                e.task.wcrt = e.response_time
+                for task in e.task.all_successors:
+                    task.wcrt = e.response_time
+
+    def _proc_analysis(self, proc: Processor):
+        length = self._longest_busy_period(proc, 0)
+        changed = False
+        for task in proc.tasks:
+            changed |= self._task_analysis(task, length)
+        return changed
+
+    def _task_analysis(self, task: Task, length: float) -> bool:
+        """task: task under analysis"""
+        max_r = 0
+        for p in range(1, math.ceil(length/task.period) + 1):
+            psi_set = self._set_psi(task.processor, length, p)
+            for psi in psi_set:
+                w = self._wab(task, psi, p, 0)  # converges to a w value
+                r = self._ra(task, psi, p, w)
+                if r > max_r:
+                    max_r = r
+                if r > task.flow.deadline * self.limit_factor:
+                    raise LimitFactorReachedException(task, r, task.flow.deadline * self.limit_factor)
+
+        if max_r > task.wcrt:
+            task.wcrt = max_r
+            return True
+        else:
+            return False
+
+
 class HolisticGlobalEDFAnalysis:
     def __init__(self, limit_factor=10, reset=True, verbose=False):
         self.limit_factor = limit_factor
@@ -10,6 +122,7 @@ class HolisticGlobalEDFAnalysis:
 
     @staticmethod
     def _activations(task: Task, length: float) -> int:
+        """eq (4)"""
         return math.ceil((length+task.jitter)/task.period)
 
     def _longest_busy_period(self, proc: Processor, l_prev: float) -> float:

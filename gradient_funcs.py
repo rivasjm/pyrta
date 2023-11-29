@@ -39,7 +39,7 @@ class StopFunction:
         """Returns true if the optimization process must stop given the current state"""
         pass
 
-    def solution(self):
+    def solution(self, S: System):
         """Returns the solution it considers best. May return several solutions"""
         pass
 

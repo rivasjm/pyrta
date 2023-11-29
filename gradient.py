@@ -4,6 +4,8 @@ import math
 from assignment import save_assignment, restore_assignment
 import numpy as np
 
+from vector import VectorHolisticFPBatchCosts
+
 
 class StandardGradientDescent(GradientDescentFunction):
     def __init__(self,
@@ -62,7 +64,7 @@ class StandardGradientDescent(GradientDescentFunction):
             self.extractor.insert(S, x)
             x = self.extractor.extract(S)
 
-        solution = self.stop_function.solution()
+        solution = self.stop_function.solution(S)
         self.extractor.insert(S, solution)
         if self.verbose:
             print(f"Returning solution with cost={self.stop_function.solution_cost():.3f}")
@@ -189,7 +191,7 @@ class StandardStop(StopFunction):
             self.xb = x
         return cost < 0 or t > self.limit
 
-    def solution(self):
+    def solution(self, S: System):
         return self.xb
 
     def solution_cost(self):
@@ -208,8 +210,29 @@ class FixedIterationsStop(StopFunction):
             self.xb = x
         return t > self.iterations
 
-    def solution(self):
+    def solution(self, S: System):
         return self.xb
+
+    def solution_cost(self):
+        return self.best
+
+
+class FixedAccumIterationsStop(StopFunction):
+    def __init__(self, iterations=100):
+        self.iterations = iterations
+        self.xs = []
+        self.best = float('inf')
+
+    def should_stop(self, S: System, x: [float], cost: float, t: int) -> bool:
+        self.xs.append(x)
+        return t > self.iterations
+
+    def solution(self, S: System):
+        analysis = VectorHolisticFPBatchCosts()
+        costs = analysis.apply(S, self.xs)
+        index = np.argmin(costs)
+        self.best = costs[index]
+        return self.xs[index]
 
     def solution_cost(self):
         return self.best

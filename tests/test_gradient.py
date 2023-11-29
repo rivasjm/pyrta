@@ -1,7 +1,9 @@
 import unittest
+
+import examples
 from gradient import *
 from analysis import HolisticFPAnalysis, HolisticGlobalEDFAnalysis
-from examples import get_small_system
+from examples import get_small_system, get_three_tasks
 from random import Random
 from assignment import PDAssignment, HOPAssignment, repr_priorities
 from model import SchedulerType
@@ -144,6 +146,20 @@ class StandardGradientDescentTest(unittest.TestCase):
         extractor.insert(system, x)
         analysis.apply(system)
         self.assertTrue(system.is_schedulable())
+
+
+class FixedAccumIterationsStopTest(unittest.TestCase):
+    def test_fixed_accum_iterations_stop(self):
+        sut = FixedAccumIterationsStop()
+        s = examples.get_three_tasks()
+        sut.should_stop(s, [1, 5, 10], cost=0, t=1)
+        sut.should_stop(s, [10, 5, 1], cost=0, t=0)
+        sut.should_stop(s, [5, 10, 1], cost=0, t=1)
+        sol = sut.solution(s)
+        cost = sut.solution_cost()
+        self.assertEqual(sol, [10, 5, 1])
+        self.assertAlmostEqual(cost, -0.6)
+
 
 
 def mapping_prio_callback(t, S: System, x, xb, cost, best):

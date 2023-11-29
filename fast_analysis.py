@@ -68,7 +68,7 @@ class FastHolisticFPAnalysis:
                     # converge W function
                     f = partial(func_w, task, p, ceiling=self.ceiling)
                     if self.fast:
-                        wp = fast_converge(f, task.period * n)
+                        wp = fast_converge(f, task.flow.deadline - task.jitter)
                     else:
                         wp = converge(f, task.wcet*p, lambda v: func_r(v, p, task) > r_limit)
 
