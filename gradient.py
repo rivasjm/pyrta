@@ -74,14 +74,16 @@ class StandardGradientDescent(GradientDescentFunction):
 
 class DeadlineExtractor(Extractor):
     def extract(self, system: System) -> [float]:
-        r = [t.deadline for t in system.tasks]
-        return r
+        max_d = max([task.deadline for task in system.tasks])
+        x = [t.deadline/max_d for t in system.tasks]
+        return x
 
     def insert(self, system: System, x: [float]):
+        max_d = max([task.deadline for task in system.tasks])
         tasks = system.tasks
         assert len(tasks) == len(x)
         for v, t in zip(x, tasks):
-            t.deadline = v
+            t.deadline = v*max_d
 
 
 class PriorityExtractor(Extractor):

@@ -85,4 +85,3 @@ class SchedRatioEval:
                           index=self.utilizations,
                           columns=self.labels)
         df.to_excel(f"{label}.xlsx")
-

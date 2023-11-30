@@ -126,55 +126,63 @@ class MASTHolisticTest(unittest.TestCase):
 
     def test_holistic_global_edf_medium(self):
         r = random.Random(42)
-        system = get_medium_system(r, utilization=0.5, balanced=True)
-        to_edf(system)
 
-        # assign PD deadlines
-        pd = PDAssignment(globalize=True)
-        pd.apply(system)
+        for _ in range(100):
+            system = get_medium_system(r, utilization=0.5, balanced=True)
+            to_edf(system)
 
-        # analyze with MAST
-        holistic_mast = MastHolisticAnalysis(limit_factor=100)
-        system.apply(holistic_mast)
-        mast_wcrts = [task.wcrt for task in system.tasks]
+            # assign PD deadlines
+            pd = PDAssignment(globalize=True)
+            pd.apply(system)
 
-        # analyze with python
-        reset_wcrt(system)
-        holistic_py = HolisticGlobalEDFAnalysis(limit_factor=100)
-        system.apply(holistic_py)
-        py_wcrts = [task.wcrt for task in system.tasks]
+            # there seems to be a float precision problem in MAST when exporting the systems with many decimal places
+            # to avoid this, in the test force integer values
+            to_int(system)
 
-        # compare results: should be the same
-        for m, p in zip(mast_wcrts, py_wcrts):
-            self.assertAlmostEqual(m, p, delta=0.001)
+            # analyze with MAST
+            holistic_mast = MastHolisticAnalysis(limit_factor=100)
+            system.apply(holistic_mast)
+            mast_wcrts = [task.wcrt for task in system.tasks]
+
+            # analyze with python
+            reset_wcrt(system)
+            holistic_py = HolisticGlobalEDFAnalysis(limit_factor=100)
+            system.apply(holistic_py)
+            py_wcrts = [task.wcrt for task in system.tasks]
+
+            # compare results: should be the same
+            for m, p in zip(mast_wcrts, py_wcrts):
+                self.assertAlmostEqual(m, p, delta=0.001)
 
     def test_holistic_local_edf_medium(self):
         r = random.Random(42)
-        system = get_medium_system(r, utilization=0.5, balanced=True)
-        to_edf(system)
 
-        # assign PD deadlines
-        pd = PDAssignment(globalize=True)
-        pd.apply(system)
+        for _ in range(100):
+            system = get_medium_system(r, utilization=0.5, balanced=True)
+            to_edf(system)
 
-        # there seems to be a float precision problem in MAST when exporting the systems with many decimal places
-        # to avoid this, in the test force integer values
-        to_int(system)
+            # assign PD deadlines
+            pd = PDAssignment(globalize=True)
+            pd.apply(system)
 
-        # analyze with MAST
-        holistic_mast = MastHolisticAnalysis(limit_factor=100, local=True)
-        system.apply(holistic_mast)
-        mast_wcrts = [task.wcrt for task in system.tasks]
+            # there seems to be a float precision problem in MAST when exporting the systems with many decimal places
+            # to avoid this, in the test force integer values
+            to_int(system)
 
-        # analyze with python
-        reset_wcrt(system)
-        holistic_py = HolisticLocalEDFAnalysis(limit_factor=100)
-        system.apply(holistic_py)
-        py_wcrts = [task.wcrt for task in system.tasks]
+            # analyze with MAST
+            holistic_mast = MastHolisticAnalysis(limit_factor=100, local=True)
+            system.apply(holistic_mast)
+            mast_wcrts = [task.wcrt for task in system.tasks]
 
-        # compare results: should be the same
-        for m, p in zip(mast_wcrts, py_wcrts):
-            self.assertAlmostEqual(m, p, delta=0.001)
+            # analyze with python
+            reset_wcrt(system)
+            holistic_py = HolisticLocalEDFAnalysis(limit_factor=100)
+            system.apply(holistic_py)
+            py_wcrts = [task.wcrt for task in system.tasks]
+
+            # compare results: should be the same
+            for m, p in zip(mast_wcrts, py_wcrts):
+                self.assertAlmostEqual(m, p, delta=0.001)
 
 
 class MASTOffsetsTest(unittest.TestCase):
