@@ -7,6 +7,12 @@ import numpy as np
 from vector import VectorHolisticFPBatchCosts
 
 
+def apply_mask(mask: [bool], x: [float]):
+    assert len(mask) == len(x)
+    for i in range(len(x)):
+        x[i] = x[i] * mask[i]
+
+
 class StandardGradientDescent(GradientDescentFunction):
     def __init__(self,
                  extractor: Extractor,
@@ -104,7 +110,7 @@ class MappingPriorityExtractor(Extractor):
         self.prio_extractor = PriorityExtractor()
 
     def extract(self, S: System) -> [float]:
-        m_vector = [1 if task.processor == proc else 0 for task in S.tasks for proc in S.processors]
+        m_vector = [0.55 if task.processor == proc else 0.45 for task in S.tasks for proc in S.processors]
         p_vector = self.prio_extractor.extract(S)
         return m_vector + p_vector
 

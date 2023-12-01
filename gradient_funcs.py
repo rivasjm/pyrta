@@ -18,6 +18,9 @@ class Extractor:
     def insert(self, S: System, x: [float]) -> None:
         pass
 
+    def mask(self, S: System, x: [float], t: int) -> [bool]:
+        return [True]*len(x)
+
 
 class CostFunction:
     """Class to compute the cost value of the given parameters"""
