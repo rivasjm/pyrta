@@ -2,7 +2,7 @@ from model import System
 from gradient import *
 from analysis import HolisticFPAnalysis, HolisticGlobalEDFAnalysis
 from assignment import PDAssignment, HOPAssignment, repr_priorities,EQFAssignment, EQSAssignment
-from vector import VectorHolisticFPBatchCosts
+from vector import VectorHolisticFPBatchCosts, PrioritiesMatrix
 from evaluation import SchedRatioEval
 from examples import get_system
 from random import Random
@@ -16,7 +16,7 @@ def gdpa_pd_fp_vector(system: System) -> bool:
     cost_function = InvslackCost(extractor=extractor, analysis=analysis)
     stop_function = StandardStop(limit=100)
     delta_function = AvgSeparationDelta(factor=1.5)
-    batch_cost_function = VectorHolisticFPBatchCosts()
+    batch_cost_function = VectorHolisticFPBatchCosts(PrioritiesMatrix())
     gradient_function = StandardGradient(delta_function=delta_function,
                                          batch_cost_function=batch_cost_function)
     update_function = NoisyAdam()
