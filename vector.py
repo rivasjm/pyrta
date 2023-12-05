@@ -3,13 +3,30 @@ import numpy as np
 from gradient_funcs import BatchCostFunction
 
 
-class VectorMatrix:
+def system_priority_matrix(system: System) -> np.array:
+    """Creates the 2D priority matrix of the given input system"""
+    tasks = system.tasks
+    procs = system.processors
+    priorities = np.array([task.priority for task in tasks]).reshape((-1, 1))
+    mapping = np.array([procs.index(task.processor) for task in tasks]).reshape((-1, 1))
+    pm = (priorities < priorities.T) * (mapping == mapping.T)
+    return pm
+
+
+class PriorityScenarios:
+    """
+    Class to generate the 3D matrix of priority scenarios given a list of input parameters
+    """
     def apply(self, S: System, inputs: [[float]]) -> np.array:
+        """
+        Returns a 3D priority matrix for the given list of input parameters
+        Each input list generates one priority scenario, which is stored in a plane of the output 3D matrix
+        """
         pass
 
 
 class VectorHolisticFPBatchCosts(BatchCostFunction):
-    def __init__(self, vector_matrix: VectorMatrix):
+    def __init__(self, vector_matrix: PriorityScenarios):
         self.vector_matrix = vector_matrix
 
     def apply(self, S: System, inputs: [[float]]) -> [float]:
@@ -18,25 +35,24 @@ class VectorHolisticFPBatchCosts(BatchCostFunction):
         PM = self.vector_matrix.apply(S, inputs)
         deadlines = np.array([task.flow.deadline for task in tasks]).reshape(n, 1)
         vholistic = VectorHolisticFPAnalysis(limit_factor=10, verbose=False)
-        vholistic.set_priority_matrix(PM)
-        vholistic.apply(S)
-        r = vholistic.response_times
+        vholistic.apply(S, scenarios=PM)
+        r = vholistic.scenarios_response_times
         costs = np.max((r - deadlines) / deadlines, axis=0)
         return costs
 
 
-class VectorHolisticFPBatchCostsOrig(BatchCostFunction):
-    def apply(self, S: System, inputs: [[float]]) -> [float]:
-        tasks = S.tasks
-        n = len(tasks)
-        priorities = np.array(inputs).transpose()
-        deadlines = np.array([task.flow.deadline for task in tasks]).reshape(n, 1)
-        vholistic = VectorHolisticFPAnalysis(limit_factor=10, verbose=False)
-        vholistic.set_priority_scenarios(priorities)
-        vholistic.apply(S)
-        r = vholistic.response_times
-        costs = np.max((r - deadlines) / deadlines, axis=0)
-        return costs
+# class VectorHolisticFPBatchCostsOrig(BatchCostFunction):
+#     def apply(self, S: System, inputs: [[float]]) -> [float]:
+#         tasks = S.tasks
+#         n = len(tasks)
+#         priorities = np.array(inputs).transpose()
+#         deadlines = np.array([task.flow.deadline for task in tasks]).reshape(n, 1)
+#         vholistic = VectorHolisticFPAnalysis(limit_factor=10, verbose=False)
+#         vholistic.set_priority_scenarios(priorities)
+#         vholistic.apply(S)
+#         r = vholistic.response_times
+#         costs = np.max((r - deadlines) / deadlines, axis=0)
+#         return costs
 
 
 def proc(task_mapping):
@@ -44,7 +60,7 @@ def proc(task_mapping):
     return proc_index
 
 
-class MappingPrioritiesMatrix(VectorMatrix):
+class MappingPrioritiesMatrix(PriorityScenarios):
     def apply(self, S: System, inputs: [[float]]) -> np.array:
         p = len(S.processors)
         n = len(S.tasks)
@@ -60,7 +76,7 @@ class MappingPrioritiesMatrix(VectorMatrix):
         return pm
 
 
-class PrioritiesMatrix(VectorMatrix):
+class PrioritiesMatrix(PriorityScenarios):
     def apply(self, S: System, inputs: [[float]]) -> np.array:
         n = len(S.tasks)
         pm = np.zeros((len(inputs), n, n))
@@ -77,52 +93,51 @@ class VectorHolisticFPAnalysis:
     def __init__(self, verbose=False, limit_factor=10):
         self.verbose = verbose
         self.limit_factor = limit_factor
-        self.priority_scenarios = None
-        self._response_times = None
-        self._full_priorities = None
+        self._scenarios_response_times = None
         self._full_response_times = None
-        self.PM = None
 
-    def clear(self):
-        self.priority_scenarios = None
-        self._response_times = None
-        self._full_priorities = None
+    def clear_results(self):
+        self._scenarios_response_times = None
         self._full_response_times = None
 
     @property
-    def response_times(self):
-        """Response vector_times matrix of the priority scenarios"""
-        return self._response_times
+    def scenarios_response_times(self):
+        """2D Matrix of response times for the additional priority scenarios. One column per scenario"""
+        return self._scenarios_response_times
 
     @property
     def full_response_times(self):
-        """Response vector_times matrix of the system + the priority scenarios"""
+        """2D Matrix of response times for the input system + additional priority scenarios. One column per scenario"""
         return self._full_response_times
 
-    @property
-    def full_priorities(self):
-        """Matrix with the system priorities + the priority scenarios"""
-        return self._full_priorities
+    # @property
+    # def full_priorities(self):
+    #     """Matrix with the system priorities + the priority scenarios"""
+    #     return self._full_priorities
 
-    def set_priority_scenarios(self, priorities):
-        """Set the priority scenarios to analye, in addition to the priorities currently set in the system"""
-        self.priority_scenarios = priorities
+    # def set_priority_scenarios(self, priorities):
+    #     """Set the priority scenarios to analye, in addition to the priorities currently set in the system"""
+    #     self.priority_scenarios = priorities
 
-    def set_priority_matrix(self, PM: np.array):
-        """Set the priority scenarios to analye, in addition to the priorities currently set in the system"""
-        self.PM = PM
+    # def set_escenarios_priority_matrix(self, scenarios_pm: np.array):
+    #     """
+    #     Set the additional priority scenarios to analyze.
+    #     These are added over the priority matrix of the input system
+    #     """
+    #     self.scenarios_pm = scenarios_pm
 
-    def _analysis(self, wcets, periods, deadlines, successors, mappings, priorities, verbose=False, limit=10):
-        assert wcets.shape == periods.shape == deadlines.shape == successors.shape == mappings.shape
+    @staticmethod
+    def _analysis(priority_matrix, wcets, periods, deadlines, successors, verbose=False, limit=10):
+        assert wcets.shape == periods.shape == deadlines.shape == successors.shape
         assert wcets.shape[1] == 1
+        assert priority_matrix.shape[1] == wcets.shape[0]
 
-        # there are t tasks, and s scenarios
-        t, s = priorities.shape if self.PM is None else self.PM.shape[1], self.PM.shape[0]
-
-        # 'priorities' has several columns, each column is a priority scenario for the system
         # create a 3D priority matrix, where each plane is a priority matrix for each scenario
         # the objective is to be able to analyze several priority assignments at the same vector_times
-        PM = self.PM if self.PM is not None else priority_matrix(priorities) * (mappings == mappings.T)
+        PM = priority_matrix  # 3D matrix with the priority scenarios (one plane per scenario)
+
+        # there are t tasks, and s scenarios
+        s, t, _ = PM.shape
 
         # the successors' matrix maps, for each task (row), which task is its successor (column)
         # this is a 2D matrix (all scenarios have the same successors mapping)
@@ -219,29 +234,33 @@ class VectorHolisticFPAnalysis:
 
         return Rmax
 
-    def apply(self, system: System):
-        wcets, periods, deadlines, successors, mappings, priorities = get_vectors(system)
+    def apply(self, system: System, scenarios: np.array = None):
+        """
+        Execute the vectorized Holistic analysis for FP systems in the given input system
+        Optionally, additional priority scenarios can be provided. Array "scenarios" is a
+        3D matrix with the additional priority scenarios, in which each plane (first dimension
+        is the priority matrix of a scenario)
+        """
+        wcets, periods, deadlines, successors, _, _ = get_vectors(system)
+
+        n = len(wcets)  # number of tasks
+        input_pm = system_priority_matrix(system).reshape(1, n, n)  # priority matrix of input system
+        s = 0 if scenarios is None else scenarios.shape[0]  # number of additionl scenarios
 
         # pack all priority scenarios in the same matrix
         # the first scenario is for the priorities in the input system
-        if self.priority_scenarios is not None:
-            priorities = np.hstack((priorities, self.priority_scenarios))
-        self._full_priorities = priorities
+        pm = np.concatenate((input_pm, scenarios), axis=0) if s > 0 else input_pm
 
-        # get response times for all scenarios
-        r = self._analysis(wcets, periods, deadlines, successors, mappings, priorities,
-                          verbose=self.verbose, limit=self.limit_factor)
+        # get response times for all scenarios. r is a 3D matrix (s+1, n, 1)
+        r = self._analysis(pm, wcets, periods, deadlines, successors, verbose=self.verbose, limit=self.limit_factor)
 
         # set the response times of the first scenario as the wcrt of the input system
         for task, wcrt in zip(system.tasks, r[0].ravel()):
             task.wcrt = wcrt
 
         # save scenarios response times
-        scenarios = priorities.shape[1] if self.PM is None else self.PM.shape[0]
-        self._full_response_times = r.ravel(order="F").reshape((len(system.tasks), scenarios))
-        start = 1 if self.PM is None else 0
-        self._response_times = r[start:, :, :].ravel(order="F").reshape((len(system.tasks), scenarios-start)) \
-            if scenarios > 1 else None
+        self._full_response_times = r.ravel(order="F").reshape((n, s+1))
+        self._scenarios_response_times = r[1:, :, :].ravel(order="F").reshape((n, s)) if s > 0 else None
 
 
 def successor_matrix(succesors):

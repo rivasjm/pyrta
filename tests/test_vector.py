@@ -8,7 +8,16 @@ import analysis
 import assignment
 import gradient
 
+
 class HolisticVectorTest(unittest.TestCase):
+    def test_system_priority_matrix(self):
+        system = examples.get_palencia_system()
+        pm = vector.system_priority_matrix(system)
+
+        expected = np.array([[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 1, 0], [0, 0, 0, 1, 0, 0],
+                             [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [1, 0, 0, 0, 0, 0]])
+        self.assertTrue((pm == expected).all())
+
     def test_palencia(self):
         """
         Test that it correctly creates a priority matrix
