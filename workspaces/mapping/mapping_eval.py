@@ -47,12 +47,12 @@ def gdpa_pd_fp_mapping(system: System) -> bool:
     analysis = HolisticFPAnalysis(limit_factor=10, reset=False)
     extractor = MappingPriorityExtractor()
     cost_function = InvslackCost(extractor=extractor, analysis=analysis)
-    stop_function = StandardStop(limit=100)
+    stop_function = StandardStop(limit=200)
     delta_function = AvgSeparationDelta(factor=1.5)
     batch_cost_function = SequentialBatchCostFunction(cost_function=cost_function)
     gradient_function = StandardGradient(delta_function=delta_function,
                                          batch_cost_function=batch_cost_function)
-    update_function = NoisyAdam(gamma=0)
+    update_function = NoisyAdam()
     optimizer = StandardGradientDescent(extractor=extractor,
                                         cost_function=cost_function,
                                         stop_function=stop_function,
@@ -85,6 +85,6 @@ if __name__ == '__main__':
              ("pd", pd_fp)]
 
     labels, funcs = zip(*tools)
-    runner = SchedRatioEval("mapping", labels=labels, funcs=funcs,
+    runner = SchedRatioEval("mapping-gamma09-i200", labels=labels, funcs=funcs,
                             systems=systems, utilizations=utilizations, threads=6)
     runner.run()
