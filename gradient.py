@@ -1,7 +1,7 @@
 from gradient_funcs import *
 from model import System
 import math
-from assignment import save_assignment, restore_assignment
+from assignment import extract_assignment, insert_assignment
 import numpy as np
 
 from vector import VectorHolisticFPBatchCosts
@@ -137,11 +137,11 @@ class InvslackCost(CostFunction):
         self.analysis = analysis
 
     def apply(self, S: System, x: [float]) -> float:
-        save_assignment(S)
+        a = extract_assignment(S)
         self.extractor.insert(S, x)
         self.analysis.apply(S)
         cost = max([(flow.wcrt - flow.deadline) / flow.deadline for flow in S.flows])
-        restore_assignment(S)
+        insert_assignment(S, a)
         return cost
 
 

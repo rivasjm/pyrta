@@ -80,9 +80,9 @@ if __name__ == '__main__':
     # utilizations between 50 % and 90 %
     utilizations = np.linspace(0.5, 0.9, 20)
 
-    tools = [("gdpa", gdpa_pd_fp_vector),
-             ("gdpa-mapping", gdpa_pd_fp_mapping),
-             ("pd", pd_fp)]
+    tools = [("pd", pd_fp),
+             ("gdpa", gdpa_pd_fp_vector),
+             ("gdpa-mapping", gdpa_pd_fp_mapping)]
 
     labels, funcs = zip(*tools)
     runner = SchedRatioEval("mapping-refactored", labels=labels, funcs=funcs,

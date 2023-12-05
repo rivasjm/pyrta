@@ -1,4 +1,4 @@
-from model import Task, System, Processor, save_attrs, restore_attrs
+from model import Task, System, Processor
 import math
 
 
@@ -317,14 +317,6 @@ def init_wcrt(system: System):
 def reset_wcrt(system: System):
     for task in system.tasks:
         task.wcrt = None
-
-
-def save_wcrt(system: System):
-    save_attrs(system.tasks, ["wcrt"])
-
-
-def restore_wcrt(system: System):
-    restore_attrs(system.tasks, ["wcrt"])
 
 
 def repr_wcrts(system: System) -> str:

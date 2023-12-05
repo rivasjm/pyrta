@@ -7,6 +7,7 @@ from bs4 import BeautifulSoup
 import tempfile
 import config
 import mast_adapters
+from assignment import extract_assignment, insert_assignment
 
 
 class MastAnalysis(Enum):
@@ -17,9 +18,10 @@ class MastAnalysis(Enum):
 
 class MastAssignment(Enum):
     NONE = None
-    PD = "pd"
-    HOSPA = "hospa"
-    SA = "annealing"
+    # TODO I need to implement retrieval of priorities from MAST result
+    # PD = "pd"
+    # HOSPA = "hospa"
+    # SA = "annealing"
 
 
 # region MAST Wrappers
@@ -64,6 +66,7 @@ def analyze(system: System, analysis: MastAnalysis, assignment: MastAssignment =
     output = os.path.abspath(os.path.join(temp_dir.name, name + "-out.xml"))
     preserve = False  # this is useless, the tempdir is removed anyways
 
+    initial_assignment = extract_assignment(system)
     try:
         # make sure priorities are correct for mast (integers higher than 0)
         sanitize_priorities(system)
@@ -73,6 +76,8 @@ def analyze(system: System, analysis: MastAnalysis, assignment: MastAssignment =
 
         # analyze with mast, capture results
         schedulable, results = run(analysis, assignment, input, output, limit, local=local)
+
+        # TODO in case of priority optimization, retrieve priorities
 
         # save wcrts into the system
         for task in system.tasks:
@@ -85,7 +90,7 @@ def analyze(system: System, analysis: MastAnalysis, assignment: MastAssignment =
 
     finally:
         # clean-up process: restore original unsanitized priorities, remove temporary files
-        desanitize_priorities(system)
+        insert_assignment(system, initial_assignment)
         if not preserve:
             temp_dir.cleanup()
 
@@ -364,22 +369,12 @@ def sanitize_priorities(system: System):
     In MAST priorities must be integers higher than 0
     :param system:
     """
-    # first save current priorities
     tasks = system.tasks
-    save_attrs(tasks, ["priority"], "_sanitize_")
 
     # assign integer priorities in the same ordering
     prio = 1
     for task in sorted(tasks, key=lambda t: t.priority):
         task.priority = prio
         prio += 1
-
-
-def desanitize_priorities(system: System):
-    """
-    Restore the un-sanitized priorities of the system
-    :param system:
-    """
-    restore_attrs(system.tasks, ["priority"], "_sanitize_")
 
 # endregion

@@ -40,12 +40,17 @@ def normalize_priorities(system):
         t.priority = t.priority/max_priority
 
 
-def save_assignment(system: System):
-    save_attrs(system.tasks, ["priority", "deadline"])
+def extract_assignment(system: System):
+    tasks = system.tasks
+    return [(t.priority, t.deadline, t.processor) for t in tasks]
 
 
-def restore_assignment(system: System):
-    restore_attrs(system.tasks, ["priority", "deadline"])
+def insert_assignment(system: System, assignment):
+    tasks = system.tasks
+    for (prio, deadline, processor), task in zip(assignment, tasks):
+        task.priority = prio
+        task.deadline = deadline
+        task.processor = processor
 
 
 class PassthroughAssignment:
@@ -160,10 +165,10 @@ class HOPAssignment:
         PDAssignment.calculate_local_deadlines(system)
         if self.globalize:
             globalize_deadlines(system)
-        save_assignment(system)
+        best_assignment = extract_assignment(system)
 
         for ka, kr in self.k_pairs:
-            restore_assignment(system)  # always start each new k-pair iteration with the best
+            insert_assignment(system, best_assignment)  # always start each new k-pair iteration with the best
 
             for i in range(self.iterations):
                 iteration += 1
@@ -181,7 +186,7 @@ class HOPAssignment:
                 slack = system.slack
                 if slack > best_slack:
                     best_slack = slack
-                    save_assignment(system)
+                    best_assignment = extract_assignment(system)
 
                 if self.verbose:
                     sched = "SCHEDULABLE" if system.is_schedulable() else "NOT SCHEDULABLE"
@@ -211,7 +216,7 @@ class HOPAssignment:
                 break
 
         self.delete_excesses(system)
-        restore_assignment(system)
+        insert_assignment(system, best_assignment)
         self.exec_time.stop()
         system.apply(self.analysis)
         if self.verbose:
@@ -296,13 +301,13 @@ def walk_random_priorities(system: System, breadth, depth, callback, verbose=Fal
         return
 
     random = Random(seed)
-    save_assignment(system)  # back up current priorities
+    initial_assignment = extract_assignment()  # back up current priorities
 
     if verbose:
         print(f"Starting random priority walk [breadth={breadth}, depth={depth}]")
 
     for b in range(breadth):
-        restore_assignment(system)
+        insert_assignment(system, initial_assignment)
 
         for d in range(depth):
             # pick a random processor that has more than 1 task
@@ -321,7 +326,7 @@ def walk_random_priorities(system: System, breadth, depth, callback, verbose=Fal
             if callback:
                 callback.apply(system)
 
-    restore_assignment(system)  # restore initial priorities
+    insert_assignment(system, initial_assignment)  # restore initial priorities
 
 
 def walk_random_priorities_processors(system: System, breadth, depth, callback, verbose=False):
@@ -331,13 +336,13 @@ def walk_random_priorities_processors(system: System, breadth, depth, callback, 
         return
 
     random = Random()
-    save_attrs(system.tasks, ["processor", "priority"])
+    initial_assignment = extract_assignment(system)
 
     if verbose:
         print(f"Starting random priority/processor walk [breadth={breadth}, depth={depth}]")
 
     for b in range(breadth):
-        restore_attrs(system.tasks, ["processor", "priority"])
+        insert_assignment(system, initial_assignment)
 
         for d in range(depth):
             # there is a 50% change of either swapping priorities
@@ -362,7 +367,7 @@ def walk_random_priorities_processors(system: System, breadth, depth, callback, 
             if callback:
                 callback(system)
 
-    restore_attrs(system.tasks, ["processor", "priority"])
+    insert_assignment(system, initial_assignment)
 
 
 def random_priority_jump(system: System, random=Random()):

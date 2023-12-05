@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import time
 from datetime import datetime
+import assignment
 
 
 class SchedRatioEval:
@@ -46,9 +47,11 @@ class SchedRatioEval:
 
     def _step(self, system: System, u_index: int):
         results = np.zeros(len(self.funcs), dtype=np.int8)
+        a = assignment.extract_assignment(system)
         for f, func in enumerate(self.funcs):
             init_wcrt(system)
             sched = func(system)
+            assignment.insert_assignment(system, a)
             if sched:
                 results[f] = 1
         return results

@@ -226,11 +226,3 @@ def restore_attrs(elements: [], attrs: [str], key="_saved_") -> None:
             if hasattr(element, key + attr):
                 value = getattr(element, key + attr)
                 setattr(element, attr, value)
-
-
-def save_tasks_params(system: System):
-    save_attrs(system.tasks, ["wcet", "processor", "priority", "deadline", "wcrt"])
-
-
-def restore_tasks_params(system: System):
-    restore_attrs(system.tasks, ["wcet", "processor", "priority", "deadline", "wcrt"])
