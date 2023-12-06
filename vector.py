@@ -145,8 +145,8 @@ class VectorHolisticFPAnalysis:
 
         # initialize response times
         # 3D column vector, each plane for each scenario
-        Rmax = np.zeros((s, t, 1), dtype=np.float64)
-        R = np.full_like(Rmax, 0.)
+        Rmax = np.zeros((s, t, 1), dtype=np.float64)  # stores max WCRT found for each task and scenario
+        R = np.full_like(Rmax, 0.)                  # temporarily stores iterations response times
 
         # update jitter matrix with current response times
         # 3D column vector, with jitter for each scenario (plane)

@@ -19,14 +19,14 @@ def pd_fp(system: System) -> bool:
     return system.is_schedulable()
 
 
-def gdpa_pd_fp_mapping_vector(system: System) -> bool:
+def gdpa_pd_fp_vector(system: System) -> bool:
     test = HolisticFPAnalysis(limit_factor=1, reset=True)
     analysis = HolisticFPAnalysis(limit_factor=10, reset=False)
-    extractor = MappingPriorityExtractor()
+    extractor = PriorityExtractor()
     cost_function = InvslackCost(extractor=extractor, analysis=analysis)
-    stop_function = StandardStop(limit=100)
+    stop_function = FixedIterationsStop(iterations=100)
     delta_function = AvgSeparationDelta(factor=1.5)
-    batch_cost_function = VectorHolisticFPBatchCosts(MappingPrioritiesMatrix())
+    batch_cost_function = VectorHolisticFPBatchCosts(PrioritiesMatrix())
     gradient_function = StandardGradient(delta_function=delta_function,
                                          batch_cost_function=batch_cost_function)
     update_function = NoisyAdam()
@@ -45,12 +45,12 @@ def gdpa_pd_fp_mapping_vector(system: System) -> bool:
     return system.is_schedulable()
 
 
-def gdpa_pd_fp_mapping_sequential(system: System) -> bool:
+def gdpa_pd_fp_sequential(system: System) -> bool:
     test = HolisticFPAnalysis(limit_factor=1, reset=True)
     analysis = HolisticFPAnalysis(limit_factor=10, reset=False)
-    extractor = MappingPriorityExtractor()
+    extractor = PriorityExtractor()
     cost_function = InvslackCost(extractor=extractor, analysis=analysis)
-    stop_function = StandardStop(limit=100)
+    stop_function = FixedIterationsStop(iterations=100)
     delta_function = AvgSeparationDelta(factor=1.5)
     batch_cost_function = SequentialBatchCostFunction(cost_function=cost_function)
     gradient_function = StandardGradient(delta_function=delta_function,
@@ -86,24 +86,24 @@ if __name__ == '__main__':
     initial_state = assignment.extract_assignment(system)
     a = time.perf_counter()
 
-    # # PD
-    # print("pd ", end="")
-    # assignment.insert_assignment(system, initial_state)
-    # pd = pd_fp(system)
-    # b = time.perf_counter()
-    # print(f"{pd} {b-a}")
-    #
-    # # GDPA MAPPING (sequential)
-    # print("gdpa seq ", end="")
-    # assignment.insert_assignment(system, initial_state)
-    # gdpa_seq = gdpa_pd_fp_mapping_sequential(system)
+    # PD
+    print("pd ", end="")
+    assignment.insert_assignment(system, initial_state)
+    pd = pd_fp(system)
+    b = time.perf_counter()
+    print(f"{pd} {b-a}")
+
+    # GDPA MAPPING (sequential)
+    print("gdpa seq ", end="")
+    assignment.insert_assignment(system, initial_state)
+    gdpa_seq = gdpa_pd_fp_sequential(system)
     c = time.perf_counter()
-    # print(f"{gdpa_seq} {c-b}")
+    print(f"{gdpa_seq} {c-b}")
 
     # GDPA MAPPING (vector)
     print("gdpa vec ", end="")
     assignment.insert_assignment(system, initial_state)
-    gdpa_vec = gdpa_pd_fp_mapping_vector(system)
+    gdpa_vec = gdpa_pd_fp_vector(system)
     d = time.perf_counter()
     print(f"{gdpa_vec} {d-c}")
 

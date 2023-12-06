@@ -23,8 +23,11 @@ def log_uniform(random: Random, lowest: float, highest: float) -> float:
 
 
 def set_processor_utilization(processor: Processor, utilization: float):
+    tasks = processor.tasks
+    if len(tasks) == 0:
+        return
     factor = utilization/processor.utilization
-    for task in processor.tasks:
+    for task in tasks:
         task.wcet *= factor
 
 

@@ -7,7 +7,7 @@ from examples import get_small_system, get_three_tasks
 from random import Random
 from assignment import PDAssignment, HOPAssignment, repr_priorities
 from model import SchedulerType
-from vector import VectorHolisticFPBatchCosts
+from vector import VectorHolisticFPBatchCosts, PrioritiesMatrix
 
 
 class StandardGradientDescentTest(unittest.TestCase):
@@ -17,7 +17,7 @@ class StandardGradientDescentTest(unittest.TestCase):
         cost_function = InvslackCost(extractor=extractor, analysis=analysis)
         stop_function = StandardStop(limit=100)
         delta_function = AvgSeparationDelta(factor=1.5)
-        batch_cost_function = VectorHolisticFPBatchCosts()
+        batch_cost_function = VectorHolisticFPBatchCosts(PrioritiesMatrix())
         gradient_function = StandardGradient(delta_function=delta_function,
                                              batch_cost_function=batch_cost_function)
         update_function = NoisyAdam()
@@ -159,7 +159,6 @@ class FixedAccumIterationsStopTest(unittest.TestCase):
         cost = sut.solution_cost()
         self.assertEqual(sol, [10, 5, 1])
         self.assertAlmostEqual(cost, -0.6)
-
 
 
 def mapping_prio_callback(t, S: System, x, xb, cost, best):

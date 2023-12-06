@@ -70,7 +70,7 @@ def gdpa_pd_fp_mapping(system: System) -> bool:
 
 if __name__ == '__main__':
     # create population of examples
-    rnd = Random(42)
+    rnd = Random(1)
     size = (3, 4, 3)  # flows, tasks, procs
     n = 50
     systems = [get_system(size, rnd, balanced=False, name=str(i),
@@ -85,6 +85,6 @@ if __name__ == '__main__':
              ("gdpa-mapping", gdpa_pd_fp_mapping)]
 
     labels, funcs = zip(*tools)
-    runner = SchedRatioEval("mapping-refactored", labels=labels, funcs=funcs,
+    runner = SchedRatioEval("mapping-seed1", labels=labels, funcs=funcs,
                             systems=systems, utilizations=utilizations, threads=6)
     runner.run()
