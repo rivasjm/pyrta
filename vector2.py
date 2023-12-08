@@ -24,6 +24,12 @@ class ResultsCache:
         key = self._key(priority_matrix)
         return key in self.data
 
+    def clear(self):
+        self.data.clear()
+
+    def __len__(self):
+        return len(self.data)
+
 
 def system_priority_matrix(system: System) -> np.array:
     """Creates the 2D priority matrix of the given input system"""
@@ -132,138 +138,98 @@ class VectorHolisticFPAnalysis:
         """2D Matrix of response times for the input system + additional priority scenarios. One column per scenario"""
         return self._full_response_times
 
-    # @property
-    # def full_priorities(self):
-    #     """Matrix with the system priorities + the priority scenarios"""
-    #     return self._full_priorities
-
-    # def set_priority_scenarios(self, priorities):
-    #     """Set the priority scenarios to analye, in addition to the priorities currently set in the system"""
-    #     self.priority_scenarios = priorities
-
-    # def set_escenarios_priority_matrix(self, scenarios_pm: np.array):
-    #     """
-    #     Set the additional priority scenarios to analyze.
-    #     These are added over the priority matrix of the input system
-    #     """
-    #     self.scenarios_pm = scenarios_pm
-
     @staticmethod
     def _analysis(priority_matrix, wcets, periods, deadlines, successors, verbose=False, limit=10):
         assert wcets.shape == periods.shape == deadlines.shape == successors.shape
         assert wcets.shape[1] == 1
         assert priority_matrix.shape[1] == wcets.shape[0]
 
-        # create a 3D priority matrix, where each plane is a priority matrix for each scenario
-        # the objective is to be able to analyze several priority assignments at the same vector_times
-        PM = priority_matrix  # 3D matrix with the priority scenarios (one plane per scenario)
+        # cache results
+        cache = ResultsCache()
+
+        # working priority matrix. initially with every scenario. scenarios will pop-out when they converge
+        pm = priority_matrix.copy()
 
         # there are t tasks, and s scenarios
-        s, t, _ = PM.shape
+        s, t, _ = pm.shape
 
         # the successors' matrix maps, for each task (row), which task is its successor (column)
         # this is a 2D matrix (all scenarios have the same successors mapping)
-        S = successor_matrix(successors)
+        sm = successor_matrix(successors)
 
-        # initialize response times
-        # 3D column vector, each plane for each scenario
-        Rmax = np.zeros((s, t, 1), dtype=np.float64)  # stores max WCRT found for each task and scenario
-        R = np.full_like(Rmax, 0.)                  # temporarily stores iterations response times
+        # initialize response times. 3D matrix (s, t, 1)
+        r_max = np.zeros((s, t, 1), dtype=np.float64)  # stores max WCRT found for each task and scenario
+        r = np.full_like(r_max, 0.)                  # temporarily stores iteration response times
 
-        # update jitter matrix with current response times
-        # 3D column vector, with jitter for each scenario (plane)
-        J = jitter_matrix(S, Rmax)
+        # jitter matrix with current wcrt. 3D matrix (s, t, 1)
+        j = jitter_matrix(sm, r_max)
 
-        # a limit on the response times for each task
-        # when a task provisional response vector_times reaches its r-limit:
-        # - the analysis of its scenario should be stopped
-        # - the system is therefore deemed non schedulable
-        Rlimit = limit * deadlines
+        # wcrt limit for each task. if the provisional wcrt of any task reaches this, that scenario should stop
+        r_limit = limit * deadlines  # 2D matrix (t, 1)
 
-        # r mask. 3D column vector
-        # when a task response vector_times converges, its value here is set to 0
-        # when a task reaches its r-limit, the values for the whole scenario are set to 0
-        # if any value is 1, that means that some task has not yet converged
-        # TODO this should be a bit per scenario: if a scenario converges or any task reaches its limit, mask=0
-        rmask = np.ones_like(Rmax)
+        # response time convergence loop
+        while pm.size > 0:
+            r_prev = r  # remember response times of previous iteration
 
-        # TODO check if any plane has all 0. that means that that scenario has converged.
-        # cache the results of that scenario, and remove it
-
-        # IDEA:
-        # remove a scenario when it converges. store results in a cache of results (class ResultsCache)
-        # stop analysis when there are no more scenarios left to analyze
-        # after every scenario converges, reconstruct result matrix Rmax with cached results of every scenario
-
-        # WCRT convergence
-        while rmask.any():
-            Rprev = R  # remember WCRT of previous iteration
-
-            # initial activation index
-            # TODO: idea to batch together several p iterations
-            # define a batch size: how many p values to test at the same vector_times
-            # add the batches as additional planes
-            # for S scenarios, B batch size: we will have B*S planes
-            # I guess I cannot use broadcasting with the STOP vector: expand STOP myself
-            # The final +p*wcets in eq (1) cannot be broadcasted either (I guess). Expand this myself too.
-            # I need to create a (B*S, tasks, 1) matrix to store the p values for each plane
+            # iterate p=1,2,... until w<=p*T
             p = 1
 
-            # p-limit mask. when a task reaches its p-limit, its bit is set to False here.
-            pmask = np.ones_like(J)
+            # p_mask: true when a task w <= p*t
+            p_mask = np.full_like(pm, False)
 
-            # p iterations (p=1, p=2, ...)
-            while True:
-                # activation index is increased when w is smaller than STOP
-                STOP = p * periods
+            # p iterations loop
+            while not np.all(p_mask):
+                # no more p when w <= p*T
+                stop_p = p * periods
 
-                # initialize W
-                W = np.zeros_like(J)
-                Wprev = np.full_like(J, -1.)
+                # initialize w
+                w = np.zeros_like(r)
+                w_prev = np.full_like(r, -1.)
 
-                # W iteration. this stops when W converges
-                while not np.allclose(W, Wprev):
-                    Wprev = W
+                # w convergence loop
+                while not np.allclose(w, w_prev):
+                    w_prev = w
+
                     # Eq. (1) of "On the schedulability Analysis for Distributed Hard Real-Time Systems"
-                    W = PM * np.ceil((W + PM * J.transpose(0, 2, 1)) / periods.T) @ wcets + p * wcets
+                    w = pm * np.ceil((w + pm * j.transpose(0, 2, 1)) / periods.T) @ wcets + p * wcets
 
-                    # Ignore those tasks that have reached their p-limit already
-                    W = W * pmask
+                    # response time for this w. used to stop as early as possible if a task surpassed its WCRT limit
+                    r_prov = w - (p - 1) * periods + j
 
-                    # find the provisional response vector_times here
-                    Rprov = rmask * (W - (p - 1) * periods + J)
+                    # save the highest response time seen until now
+                    r_max = np.maximum(r_prov, r_max)
 
-                    # update worst-case response times and jitters
-                    # there may be a task that have reached its r-limit, no problem,
-                    # take the wcrt into account, and afterwards mask the scenario, so it's convergence stops
-                    Rmax = np.maximum(Rprov, Rmax)
-                    J = jitter_matrix(S, Rmax)
+                    # identify the scenarios that have reached their r-limit
+                    over = scenarios_over_limit(r_max, r_limit)
 
-                    # identify the tasks that have reached their r-limit
-                    # if a task reached its r-limit, set all the r-masks of its scenario to 0
-                    # that scenario analysis is now stopped
-                    rmask = rmask * np.all(Rprov < Rlimit, axis=1).reshape((s, 1, 1))
+                    if np.any(over):
+                        cache_scenario_results(r_max, pm, over, cache)
 
-                    # also stop the p-iterations if already reached r-limit
-                    pmask = rmask * pmask
 
-                # once W converges, calculate the response times for this p
-                # I can use the last Rprov for this. equation: R = W-(p-1)*periods+J
-                R = rmask * Rprov
+                    # update jitters
+                    j = jitter_matrix(sm, r_max)
 
-                # stop the p iterations if all W meet the stopping criteria
-                # update the pmask here, and stop when pmask is all zeroes
-                pmask = pmask * np.logical_not(W < STOP)
-                if not pmask.any():
-                    break
+                    # cache results of those scenarios that are over their limit
+                    # remove those scenarios from necessary matrices
+                    # TODO
 
-                # if no stopping criteria, try with next p
+                p_mask = w <= stop_p  # tasks that have this true don't need to try more p's
                 p += 1
 
-            # if a task response vector_times has not changed, sets its bit in the mask to zero
-            rmask = rmask * np.logical_not(np.allclose(R, Rprev))
+            # identify tasks whose WCRT has not changed from the previous iteration
+            # identify finished scenarios: all its tasks have converged
+            # cache results of finished scenarios, remove finished scenarios
+            # TODO
+            # converged = np.all(r == r_prev, axis=1).reshape((s, 1, 1))
+            # isclose instead?
 
-        return Rmax
+            # remove scenarios from boolean array
+            # np.delete(a, np.array([False, True, False]), axis=0)
+
+        # reconstruct the r_max matrix from the cache
+        # TODO return reconstructed r_max
+
+
 
     def apply(self, system: System, scenarios: np.array = None):
         """
@@ -352,10 +318,56 @@ def finished_scenarios(rmask: np.ndarray) -> [int]:
     return np.where(~rmask.any(axis=1))[0].tolist()
 
 
+def scenarios_over_limit(r, r_limit):
+    """
+    returns (s) boolean vector indicating which scenarios have surpassed their limit
+    A scenario surpasses his limit when any of its tasks surpasses its limit
+    """
+    s, _, _ = r.shape
+    over = np.any(r > r_limit, axis=1).reshape(s)
+    return over
+
+
 def extract_scenario_data(data: np.ndarray, scenario: int) -> np.ndarray:
     """
     data is a (s, x, y) matrix, where s is the number of scenarios
     Returns the data of a scenario as a 2D array, with shape (x, y)
     """
     _, x, y = data.shape
-    return data[scenario,::].reshape(x, y)
+    return data[scenario, ::].reshape(x, y)
+
+
+def cache_scenario_results(r, pm, scenarios, cache: ResultsCache):
+    """
+    r is a (s, t, 1) matrix with the results
+    pm is a (s, t, t) full 3D priority matrix
+    scenarios is a (s) boolean matrix indicating which scenarios to cache
+    cache is the storage of results. key a 2D (t,t) priority matrix, value the (t,1) results
+    """
+    for s in np.where(scenarios)[0]:
+        key = extract_scenario_data(pm, s)
+        value = extract_scenario_data(r, s)
+        cache.insert(key, value)
+
+
+def remove_scenarios(scenarios, *matrices):
+    """
+    scenarios is a (s) boolean matrix indicating which scenarios to remove
+    matrices is a list of (s, x, y) matrices
+    Removes the indicated scenarios from the matrices, and returns them
+    """
+    res = [matrix[~scenarios] for matrix in matrices]
+    return res
+
+
+def build_results_from_cache(pm, cache: ResultsCache):
+    """
+    pm is the full 3D (s, t, t) priority matrix with every scenario
+    cache has the results of different 2D priority matrices (t, t)
+    each result in the cache has a shape (t, 1)
+    Returns a 2D matrix of results (t, s)
+    """
+    s, _, _ = pm.shape
+    data = [cache.get(extract_scenario_data(pm, i)) for i in range(s)]
+    res = np.concatenate(data, axis=1)
+    return res
