@@ -302,7 +302,7 @@ class HolisticVectorTest(unittest.TestCase):
         res = vector2.build_results_from_cache(pm, cache)
         self.assertTrue(np.array_equal(expected, res))
 
-    def test_cachd_analysis(self):
+    def test_cached_analysis(self):
         system = examples.get_palencia_system()
 
         holistic1 = vector.VectorHolisticFPAnalysis()
@@ -316,3 +316,27 @@ class HolisticVectorTest(unittest.TestCase):
         results2 = [t.wcrt for t in system.tasks]
 
         self.assertListEqual(results1, results2)
+
+    def test_cached_analysis_scenarios(self):
+        system = examples.get_palencia_system()
+        extractor = gradient.PriorityExtractor()
+        mapper = vector2.PrioritiesMatrix()
+        pd = assignment.PDAssignment()
+
+        v1 = extractor.extract(system)
+        pd.apply(system)
+        v2 = extractor.extract(system)
+        pm = mapper.apply(system, [v1, v2])
+
+        holistic1 = vector.VectorHolisticFPAnalysis()
+        holistic2 = vector2.VectorHolisticFPAnalysis()
+
+        analysis.reset_wcrt(system)
+        holistic1.apply(system, scenarios=pm)
+        r1 = holistic1.full_response_times
+
+        analysis.reset_wcrt(system)
+        holistic2.apply(system, scenarios=pm)
+        r2 = holistic2.full_response_times
+        self.assertTrue(np.all(r1 == r2))
+

@@ -89,7 +89,7 @@ def proc(task_mapping):
 
 
 class MappingPrioritiesMatrix(PriorityScenarios):
-    def apply(self, S: System, inputs: [[float]]) -> np.array:
+    def apply(self, S: System, inputs: [[float]]) -> np.ndarray:
         p = len(S.processors)
         n = len(S.tasks)
         pm = np.zeros((len(inputs), n, n))
@@ -105,7 +105,7 @@ class MappingPrioritiesMatrix(PriorityScenarios):
 
 
 class PrioritiesMatrix(PriorityScenarios):
-    def apply(self, S: System, inputs: [[float]]) -> np.array:
+    def apply(self, S: System, inputs: [[float]]) -> np.ndarray:
         n = len(S.tasks)
         pm = np.zeros((len(inputs), n, n))
         procs = S.processors
@@ -233,14 +233,13 @@ class VectorHolisticFPAnalysis:
         """
         Execute the vectorized Holistic analysis for FP systems in the given input system
         Optionally, additional priority scenarios can be provided. Array "scenarios" is a
-        3D matrix with the additional priority scenarios, in which each plane (first dimension
-        is the priority matrix of a scenario)
+        3D matrix with the additional priority scenarios, in which each plane is a 2D priority matrix
         """
         wcets, periods, deadlines, successors, _, _ = get_vectors(system)
 
         n = len(wcets)  # number of tasks
         input_pm = system_priority_matrix(system).reshape(1, n, n)  # priority matrix of input system
-        s = 0 if scenarios is None else scenarios.shape[0]  # number of additionl scenarios
+        s = 0 if scenarios is None else scenarios.shape[0]          # number of additionl scenarios
 
         # pack all priority scenarios in the same matrix
         # the first scenario is for the priorities in the input system
