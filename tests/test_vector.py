@@ -160,7 +160,6 @@ class HolisticVectorTest(unittest.TestCase):
 
     def test_scenarios_over_limit(self):
         s,t = 6, 10
-
         r = np.array([range(s*t)]).reshape(s, t, 1)
 
         # no scenario should exceed limit
@@ -180,6 +179,25 @@ class HolisticVectorTest(unittest.TestCase):
         r_limit = np.array([0] * t).reshape(t, 1)
         res = vector2.scenarios_over_limit(r, r_limit)
         self.assertTrue(np.all(res))
+
+    def test_converged_scenarios(self):
+        a = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]).reshape(3, -1, 1)
+        b = np.array([1, 2, 3, 4, 6, 6, 7, 8, 10, 10, 11, 12]).reshape(3, -1, 1)
+        res = vector2.converged_scenarios(a, b)
+        expected = np.array([True, False, False])
+        self.assertTrue(np.array_equal(res, expected))
+
+        a = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]).reshape(3, -1, 1)
+        b = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]).reshape(3, -1, 1)
+        res = vector2.converged_scenarios(a, b)
+        expected = np.array([True, True, True])
+        self.assertTrue(np.array_equal(res, expected))
+
+        a = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]).reshape(3, -1, 1)
+        b = np.array([0, 2, 3, 4, 0, 6, 7, 8, 0, 10, 11, 12]).reshape(3, -1, 1)
+        res = vector2.converged_scenarios(a, b)
+        expected = np.array([False, False, False])
+        self.assertTrue(np.array_equal(res, expected))
 
     def test_cache_scenario_results(self):
         t = 6
@@ -284,3 +302,17 @@ class HolisticVectorTest(unittest.TestCase):
         res = vector2.build_results_from_cache(pm, cache)
         self.assertTrue(np.array_equal(expected, res))
 
+    def test_cachd_analysis(self):
+        system = examples.get_palencia_system()
+
+        holistic1 = vector.VectorHolisticFPAnalysis()
+        analysis.reset_wcrt(system)
+        holistic1.apply(system)
+        results1 = [t.wcrt for t in system.tasks]
+
+        holistic2 = vector2.VectorHolisticFPAnalysis()
+        analysis.reset_wcrt(system)
+        holistic2.apply(system)
+        results2 = [t.wcrt for t in system.tasks]
+
+        self.assertListEqual(results1, results2)
