@@ -1,7 +1,12 @@
 from model import System
 
 
-class GradientDescentFunction:
+class Reseteable():
+    def reset(self):
+        pass
+
+
+class GradientDescentFunction(Reseteable):
     """Class to perform Gradient Descent. Usually composed of building blocks such as Extractor, CostFunction, etc."""
     def apply(self, S: System) -> [float]:
         """Apply gradient descent on the given system. Returns the optimized parameters. These parameters
@@ -9,7 +14,7 @@ class GradientDescentFunction:
         pass
 
 
-class Extractor:
+class Extractor(Reseteable):
     """Class to extract an insert parameters into a system.
     The parameters is stored as a flat list of floats"""
     def extract(self, S: System) -> [float]:
@@ -22,20 +27,20 @@ class Extractor:
         return [True]*len(x)
 
 
-class CostFunction:
+class CostFunction(Reseteable):
     """Class to compute the cost value of the given parameters"""
     def apply(self, S: System, x: [float]) -> float:
         pass
 
 
-class BatchCostFunction:
+class BatchCostFunction(Reseteable):
     """Class to compute the cost values of a list of parameters.
     One cost value is returned per parameter list"""
     def apply(self, S: System, inputs: [[float]]) -> [float]:
         pass
 
 
-class StopFunction:
+class StopFunction(Reseteable):
     """Class to determine if the optimization process must stop for the given state, represented by the
     given parameters, cost value and iteration number"""
     def should_stop(self, S: System, x: [float], cost: float, t: int) -> bool:
@@ -51,20 +56,20 @@ class StopFunction:
         pass
 
 
-class DeltaFunction:
+class DeltaFunction(Reseteable):
     """Class to calculate the delta with which compute the gradient"""
     def apply(self, S: System, x: [float]) -> [float]:
         """Returns true if the optimization process must stop given the current state"""
         pass
 
 
-class GradientFunction:
+class GradientFunction(Reseteable):
     """Class to compute the gradient at the given parameters"""
     def apply(self, S: System, x: [float]) -> [float]:
         pass
 
 
-class UpdateFunction:
+class UpdateFunction(Reseteable):
     """Class t update the given input parameters, according to the gradient and iteration number"""
     def apply(self, S: System, x: [float], nabla: [float], t: int) -> [float]:
         pass

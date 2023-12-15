@@ -10,7 +10,7 @@ from fast_analysis import FastHolisticFPAnalysis
 from functools import partial
 
 
-def gdpa_pd_fp_vector(system: System) -> bool:
+def gdpa(system: System) -> bool:
     analysis = HolisticFPAnalysis(limit_factor=10, reset=False)
     extractor = PriorityExtractor()
     cost_function = InvslackCost(extractor=extractor, analysis=analysis)
@@ -34,7 +34,7 @@ def gdpa_pd_fp_vector(system: System) -> bool:
     return system.is_schedulable()
 
 
-def pd_fp(system: System) -> bool:
+def pd(system: System) -> bool:
     analysis = HolisticFPAnalysis(limit_factor=10, reset=False)
     pd = PDAssignment(normalize=True)
     pd.apply(system)
@@ -42,7 +42,7 @@ def pd_fp(system: System) -> bool:
     return system.is_schedulable()
 
 
-def gdpa_pd_fp_mapping(system: System) -> bool:
+def gdpa_mapping(system: System) -> bool:
     test = HolisticFPAnalysis(limit_factor=1, reset=True)
     analysis = HolisticFPAnalysis(limit_factor=10, reset=False)
     extractor = MappingPriorityExtractor()
@@ -70,7 +70,7 @@ def gdpa_pd_fp_mapping(system: System) -> bool:
 
 if __name__ == '__main__':
     # create population of examples
-    rnd = Random(1)
+    rnd = Random(42)
     size = (3, 4, 3)  # flows, tasks, procs
     n = 50
     systems = [get_system(size, rnd, balanced=False, name=str(i),
@@ -80,11 +80,11 @@ if __name__ == '__main__':
     # utilizations between 50 % and 90 %
     utilizations = np.linspace(0.5, 0.9, 20)
 
-    tools = [("pd", pd_fp),
-             ("gdpa", gdpa_pd_fp_vector),
-             ("gdpa-mapping", gdpa_pd_fp_mapping)]
+    tools = [("pd", pd),
+             ("gdpa", gdpa),
+             ("gdpa-mapping", gdpa_mapping)]
 
     labels, funcs = zip(*tools)
-    runner = SchedRatioEval("mapping-seed1", labels=labels, funcs=funcs,
+    runner = SchedRatioEval("mapping-seed42", labels=labels, funcs=funcs,
                             systems=systems, utilizations=utilizations, threads=6)
     runner.run()

@@ -2,7 +2,8 @@ from model import System
 from gradient import *
 from analysis import HolisticFPAnalysis, HolisticGlobalEDFAnalysis
 import assignment
-from vector import VectorHolisticFPBatchCosts, MappingPrioritiesMatrix, PrioritiesMatrix
+import vector
+import vector
 from examples import get_system
 from random import Random
 from fast_analysis import FastHolisticFPAnalysis
@@ -22,11 +23,11 @@ def pd_fp(system: System) -> bool:
 def gdpa_pd_fp_vector(system: System) -> bool:
     test = HolisticFPAnalysis(limit_factor=1, reset=True)
     analysis = HolisticFPAnalysis(limit_factor=10, reset=False)
-    extractor = PriorityExtractor()
+    extractor = MappingPriorityExtractor()
     cost_function = InvslackCost(extractor=extractor, analysis=analysis)
     stop_function = FixedIterationsStop(iterations=100)
     delta_function = AvgSeparationDelta(factor=1.5)
-    batch_cost_function = VectorHolisticFPBatchCosts(PrioritiesMatrix())
+    batch_cost_function = vector.VectorHolisticFPBatchCosts(vector.MappingPrioritiesMatrix())
     gradient_function = StandardGradient(delta_function=delta_function,
                                          batch_cost_function=batch_cost_function)
     update_function = NoisyAdam()
@@ -35,7 +36,33 @@ def gdpa_pd_fp_vector(system: System) -> bool:
                                         stop_function=stop_function,
                                         gradient_function=gradient_function,
                                         update_function=update_function,
-                                        verbose=False)
+                                        verbose=True)
+
+    pd = assignment.PDAssignment(normalize=True)
+    pd.apply(system)
+    optimizer.apply(system)
+
+    test.apply(system)
+    return system.is_schedulable()
+
+
+def gdpa_pd_fp_vector_cached(system: System) -> bool:
+    test = HolisticFPAnalysis(limit_factor=1, reset=True)
+    analysis = HolisticFPAnalysis(limit_factor=10, reset=False)
+    extractor = MappingPriorityExtractor()
+    cost_function = InvslackCost(extractor=extractor, analysis=analysis)
+    stop_function = FixedIterationsStop(iterations=100)
+    delta_function = AvgSeparationDelta(factor=1.5)
+    batch_cost_function = vector2.VectorHolisticFPBatchCosts(vector2.MappingPrioritiesMatrix())
+    gradient_function = StandardGradient(delta_function=delta_function,
+                                         batch_cost_function=batch_cost_function)
+    update_function = NoisyAdam()
+    optimizer = StandardGradientDescent(extractor=extractor,
+                                        cost_function=cost_function,
+                                        stop_function=stop_function,
+                                        gradient_function=gradient_function,
+                                        update_function=update_function,
+                                        verbose=True)
 
     pd = assignment.PDAssignment(normalize=True)
     pd.apply(system)
@@ -48,7 +75,7 @@ def gdpa_pd_fp_vector(system: System) -> bool:
 def gdpa_pd_fp_sequential(system: System) -> bool:
     test = HolisticFPAnalysis(limit_factor=1, reset=True)
     analysis = HolisticFPAnalysis(limit_factor=10, reset=False)
-    extractor = PriorityExtractor()
+    extractor = MappingPriorityExtractor()
     cost_function = InvslackCost(extractor=extractor, analysis=analysis)
     stop_function = FixedIterationsStop(iterations=100)
     delta_function = AvgSeparationDelta(factor=1.5)
@@ -61,7 +88,7 @@ def gdpa_pd_fp_sequential(system: System) -> bool:
                                         stop_function=stop_function,
                                         gradient_function=gradient_function,
                                         update_function=update_function,
-                                        verbose=False)
+                                        verbose=True)
 
     pd = assignment.PDAssignment(normalize=True)
     pd.apply(system)
@@ -106,4 +133,11 @@ if __name__ == '__main__':
     gdpa_vec = gdpa_pd_fp_vector(system)
     d = time.perf_counter()
     print(f"{gdpa_vec} {d-c}")
+
+    # GDPA MAPPING (vector cached)
+    print("gdpa vec cached ", end="")
+    assignment.insert_assignment(system, initial_state)
+    gdpa_vec = gdpa_pd_fp_vector_cached(system)
+    e = time.perf_counter()
+    print(f"{gdpa_vec} {e - d}")
 

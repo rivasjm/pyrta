@@ -104,7 +104,7 @@ class Flow:
 
     def __repr__(self):
         ts = " ".join(map(lambda t: str(t), self.tasks))
-        return f"{self.period} : {ts} : {self.deadline})"
+        return f"{self.period:.2f} : {ts} : {self.deadline:.2f})"
 
     @property
     def wcrt(self):

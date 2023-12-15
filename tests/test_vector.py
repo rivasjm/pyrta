@@ -1,8 +1,9 @@
+import random
 import unittest
 
 import numpy as np
 import examples
-import vector, vector2
+import vector, vector
 import analysis
 import assignment
 import gradient
@@ -339,4 +340,78 @@ class HolisticVectorTest(unittest.TestCase):
         holistic2.apply(system, scenarios=pm)
         r2 = holistic2.full_response_times
         self.assertTrue(np.all(r1 == r2))
+
+    def test_cached_analysis_big(self):
+        rnd = random.Random(42)
+        system = examples.get_big_system(random=rnd, utilization=0.8, balanced=True)
+        pd = assignment.PDAssignment()
+        pd.apply(system)
+
+        holistic1 = vector.VectorHolisticFPAnalysis()
+        analysis.reset_wcrt(system)
+        holistic1.apply(system)
+        results1 = [t.wcrt for t in system.tasks]
+
+        holistic2 = vector2.VectorHolisticFPAnalysis()
+        analysis.reset_wcrt(system)
+        holistic2.apply(system)
+        results2 = [t.wcrt for t in system.tasks]
+
+        self.assertListEqual(results1, results2)
+
+    def test_cached_analysis_scenarios_small(self):
+        rnd = random.Random(1)
+        system = examples.get_small_system(random=rnd, utilization=0.7, balanced=True)
+        extractor = gradient.PriorityExtractor()
+        mapper = vector2.PrioritiesMatrix()
+        pd = assignment.PDAssignment()
+
+        v1 = extractor.extract(system)
+        pd.apply(system)
+        v2 = extractor.extract(system)
+        pm = mapper.apply(system, [v1, v2])
+
+        holistic1 = vector.VectorHolisticFPAnalysis()
+        holistic2 = vector2.VectorHolisticFPAnalysis()
+
+        analysis.reset_wcrt(system)
+        holistic1.apply(system, scenarios=pm)
+        r1 = holistic1.full_response_times
+
+        analysis.reset_wcrt(system)
+        holistic2.apply(system, scenarios=pm)
+        r2 = holistic2.full_response_times
+        self.assertTrue(np.all(r1 == r2))
+
+    def test_prune_scenarios(self):
+        system = examples.get_palencia_system()
+        pd = assignment.PDAssignment()
+        t = len(system.tasks)
+        cache = vector2.ResultsCache()
+
+        # build priority matrices
+        pm1 = vector2.system_priority_matrix(system)
+        pd.apply(system)
+        pm2 = vector2.system_priority_matrix(system)
+        pm = np.full((2, t, t), False)
+        pm[0,:,:] = pm1
+        pm[1,:,:] = pm2
+
+        # empty cache
+        pm_a = vector2.prune_known_scenarios(pm, cache)
+        self.assertTrue(np.all(pm == pm_a))
+
+        # cache one scenario
+        cache.insert(pm2, "a result")
+        pm_b = vector2.prune_known_scenarios(pm, cache)
+        self.assertEqual(pm_b.shape[0], 1)
+        self.assertTrue(np.all(pm1 == pm[0,:,:]))
+
+        # cache both scenario
+        cache.insert(pm1, "a result")
+        pm_b = vector2.prune_known_scenarios(pm, cache)
+        self.assertEqual(pm_b.shape[0], 0)
+
+
+
 

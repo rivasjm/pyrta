@@ -16,11 +16,11 @@ def apply_mask(mask: [bool], x: [float]):
 class StandardGradientDescent(GradientDescentFunction):
     def __init__(self,
                  extractor: Extractor,
-                 cost_function: CostFunction,   # to compute cost at each iteration, not to compute gradient
+                 cost_function: CostFunction,               # to compute cost at each iteration, not to compute gradient
                  stop_function: StopFunction,
                  gradient_function: GradientFunction,
                  update_function: UpdateFunction,
-                 ref_cost_function = None,      # secondary cost function for logging, not to optimize
+                 ref_cost_function: CostFunction = None,    # secondary cost function for logging, not to optimize
                  callback=None,
                  verbose=False):
         self.extractor = extractor
@@ -31,6 +31,14 @@ class StandardGradientDescent(GradientDescentFunction):
         self.ref_cost_function = ref_cost_function
         self.callback = callback
         self.verbose = verbose
+
+    def reset(self):
+        self.extractor.reset()
+        self.cost_function.reset()
+        self.stop_function.reset()
+        self.gradient_function.reset()
+        self.update_function.reset()
+        self.ref_cost_function.reset()
 
     def apply(self, S: System) -> [float]:
         t = 1
@@ -109,6 +117,9 @@ class MappingPriorityExtractor(Extractor):
     def __init__(self):
         self.prio_extractor = PriorityExtractor()
 
+    def reset(self):
+        self.prio_extractor.reset()
+
     def extract(self, S: System) -> [float]:
         m_vector = [0.55 if task.processor == proc else 0.45 for task in S.tasks for proc in S.processors]
         p_vector = self.prio_extractor.extract(S)
@@ -136,6 +147,9 @@ class InvslackCost(CostFunction):
         self.extractor = extractor
         self.analysis = analysis
 
+    def reset(self):
+        self.extractor.reset()
+
     def apply(self, S: System, x: [float]) -> float:
         a = extract_assignment(S)
         self.extractor.insert(S, x)
@@ -149,6 +163,10 @@ class StandardGradient(GradientFunction):
     def __init__(self, delta_function: DeltaFunction, batch_cost_function: BatchCostFunction):
         self.delta_function = delta_function
         self.batch_cost_function = batch_cost_function
+
+    def reset(self):
+        self.delta_function.reset()
+        self.batch_cost_function.reset()
 
     @staticmethod
     def _gradient_inputs(x, deltas) -> [[float]]:
@@ -193,6 +211,10 @@ class StandardStop(StopFunction):
         self.best = float("inf")  # best cost value
         self.xb = None            # best solution
 
+    def reset(self):
+        self.best = float("inf")
+        self.xb = None
+
     def should_stop(self, S: System, x: [float], cost: float, t: int) -> bool:
         if cost < self.best:
             self.best = cost
@@ -212,6 +234,10 @@ class FixedIterationsStop(StopFunction):
         self.best = float("inf")  # best cost value
         self.xb = None            # best solution
 
+    def reset(self):
+        self.best = float("inf")
+        self.xb = None
+
     def should_stop(self, S: System, x: [float], cost: float, t: int) -> bool:
         if cost < self.best:
             self.best = cost
@@ -228,6 +254,10 @@ class FixedIterationsStop(StopFunction):
 class FixedAccumIterationsStop(StopFunction):
     def __init__(self, iterations=100):
         self.iterations = iterations
+        self.xs = []
+        self.best = float('inf')
+
+    def reset(self):
         self.xs = []
         self.best = float('inf')
 
@@ -249,6 +279,9 @@ class FixedAccumIterationsStop(StopFunction):
 class SequentialBatchCostFunction(BatchCostFunction):
     def __init__(self, cost_function: CostFunction):
         self.cost_function = cost_function
+
+    def reset(self):
+        self.cost_function.reset()
 
     def apply(self, S: System, inputs: [[float]]):
         costs = [self.cost_function.apply(S, x) for x in inputs]
