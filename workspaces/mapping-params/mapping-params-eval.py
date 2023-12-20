@@ -10,6 +10,30 @@ from fast_analysis import FastHolisticFPAnalysis
 from functools import partial
 
 
+def gdpa(system: System) -> bool:
+    analysis = HolisticFPAnalysis(limit_factor=10, reset=False)
+    extractor = PriorityExtractor()
+    cost_function = InvslackCost(extractor=extractor, analysis=analysis)
+    stop_function = StandardStop(limit=100)
+    delta_function = AvgSeparationDelta(factor=1.5)
+    batch_cost_function = VectorHolisticFPBatchCosts(PrioritiesMatrix())
+    gradient_function = StandardGradient(delta_function=delta_function,
+                                         batch_cost_function=batch_cost_function)
+    update_function = NoisyAdam()
+    optimizer = StandardGradientDescent(extractor=extractor,
+                                        cost_function=cost_function,
+                                        stop_function=stop_function,
+                                        gradient_function=gradient_function,
+                                        update_function=update_function,
+                                        verbose=False)
+
+    pd = PDAssignment(normalize=True)
+    pd.apply(system)
+    optimizer.apply(system)
+    analysis.apply(system)
+    return system.is_schedulable()
+
+
 def gdpa_mapping(system: System, **kwargs) -> bool:
     i = kwargs["i"]
     d = kwargs["d"]
@@ -58,15 +82,21 @@ if __name__ == '__main__':
                           deadline_factor_min=0.5,
                           deadline_factor_max=1) for i in range(n)]
 
-    utilizations = [0.5]
+    utilizations = [0.75]
 
-    tools = [build_func(i=200, d=1.5, lr=1.5, b1=0.9, b2=0.999, e=0.1, g=0.9),
-             build_func(i=200, d=1.5, lr=1, b1=0.9, b2=0.999, e=0.1, g=0.9),
-             build_func(i=200, d=1.5, lr=2, b1=0.9, b2=0.999, e=0.1, g=0.9),
-             build_func(i=200, d=1.5, lr=1.5, b1=0.9, b2=0.999, e=0.1, g=0.5),
-             build_func(i=200, d=1.5, lr=1.5, b1=0.9, b2=0.999, e=0.1, g=1.5),
-             build_func(i=200, d=1, lr=1.5, b1=0.9, b2=0.999, e=0.1, g=0.9),
-             build_func(i=200, d=2, lr=1.5, b1=0.9, b2=0.999, e=0.1, g=0.9),]
+    tools = [
+        ("gdpa", gdpa),
+        build_func(i=200, d=1.5, lr=1.5, b1=0.9, b2=0.999, e=0.1, g=0.9),
+        build_func(i=200, d=1.5, lr=1, b1=0.9, b2=0.999, e=0.1, g=0.9),
+        build_func(i=200, d=1.5, lr=2, b1=0.9, b2=0.999, e=0.1, g=0.9),
+        build_func(i=200, d=1.5, lr=1.5, b1=0.9, b2=0.999, e=0.1, g=0.5),
+        build_func(i=200, d=1.5, lr=1.5, b1=0.9, b2=0.999, e=0.1, g=1.5),
+        build_func(i=200, d=1, lr=1.5, b1=0.9, b2=0.999, e=0.1, g=0.9),
+        build_func(i=200, d=2, lr=1.5, b1=0.9, b2=0.999, e=0.1, g=0.9),
+        build_func(i=200, d=2, lr=1, b1=0.9, b2=0.999, e=0.1, g=0.5)
+    ]
+
+    # best: d=1.5 lr=1.5 b1=0.9 b2=0.999 e=0.1 g=0.5
 
     labels, funcs = zip(*tools)
     runner = SchedRatioEval("mapping-params", labels=labels, funcs=funcs,

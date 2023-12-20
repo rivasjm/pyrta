@@ -47,12 +47,12 @@ def gdpa_mapping(system: System) -> bool:
     analysis = HolisticFPAnalysis(limit_factor=10, reset=False)
     extractor = MappingPriorityExtractor()
     cost_function = InvslackCost(extractor=extractor, analysis=analysis)
-    stop_function = StandardStop(limit=100)
+    stop_function = StandardStop(limit=200)
     delta_function = AvgSeparationDelta(factor=1.5)
     batch_cost_function = VectorHolisticFPBatchCosts(MappingPrioritiesMatrix())
     gradient_function = StandardGradient(delta_function=delta_function,
                                          batch_cost_function=batch_cost_function)
-    update_function = NoisyAdam()
+    update_function = NoisyAdam(lr=1.5, beta1=0.9, beta2=0.999, epsilon=0.1, gamma=0.5)
     optimizer = StandardGradientDescent(extractor=extractor,
                                         cost_function=cost_function,
                                         stop_function=stop_function,
