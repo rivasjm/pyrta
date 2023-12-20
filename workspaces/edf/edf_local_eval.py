@@ -8,6 +8,7 @@ from examples import get_system
 from random import Random
 from fast_analysis import FastHolisticFPAnalysis
 from functools import partial
+from mast.mast_tools import MastHolisticAnalysis
 
 
 def item(system, analysis, assignment):
@@ -51,7 +52,7 @@ def edf_local_gdpa(system: System) -> bool:
                                         verbose=False)
 
     PDAssignment().apply(system)
-    return item(system, HolisticLocalEDFAnalysis(limit_factor=1, reset=True), optimizer)
+    return item(system, MastHolisticAnalysis(limit_factor=1, local=True), optimizer)
 
 
 if __name__ == '__main__':
@@ -73,6 +74,6 @@ if __name__ == '__main__':
              ("EDF-L GDPA", edf_local_gdpa)]
 
     labels, funcs = zip(*tools)
-    runner = SchedRatioEval("edf_local", labels=labels, funcs=funcs,
+    runner = SchedRatioEval("edf_local_mast", labels=labels, funcs=funcs,
                             systems=systems, utilizations=utilizations, threads=6)
     runner.run()
