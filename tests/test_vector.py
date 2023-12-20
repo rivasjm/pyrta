@@ -3,7 +3,7 @@ import unittest
 
 import numpy as np
 import examples
-import vector, vector
+import vector
 import analysis
 import assignment
 import gradient
@@ -165,38 +165,38 @@ class HolisticVectorTest(unittest.TestCase):
 
         # no scenario should exceed limit
         r_limit = np.array([100]*t).reshape(t, 1)
-        res = vector2.scenarios_over_limit(r, r_limit)
+        res = vector.scenarios_over_limit(r, r_limit)
         self.assertTrue(~np.all(res))
 
         # only last scenario should exceed limit
         limits = [100] * (t-1) + [58]
         r_limit = np.array(limits).reshape(t, 1)
-        res = vector2.scenarios_over_limit(r, r_limit)
+        res = vector.scenarios_over_limit(r, r_limit)
         self.assertTrue(np.sum(res) == 1)
         self.assertTrue(np.all(res[-1]))
         self.assertTrue(~np.all(res[0:-1]))
 
         # every scenario should exceed limit
         r_limit = np.array([0] * t).reshape(t, 1)
-        res = vector2.scenarios_over_limit(r, r_limit)
+        res = vector.scenarios_over_limit(r, r_limit)
         self.assertTrue(np.all(res))
 
     def test_converged_scenarios(self):
         a = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]).reshape(3, -1, 1)
         b = np.array([1, 2, 3, 4, 6, 6, 7, 8, 10, 10, 11, 12]).reshape(3, -1, 1)
-        res = vector2.converged_scenarios(a, b)
+        res = vector.converged_scenarios(a, b)
         expected = np.array([True, False, False])
         self.assertTrue(np.array_equal(res, expected))
 
         a = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]).reshape(3, -1, 1)
         b = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]).reshape(3, -1, 1)
-        res = vector2.converged_scenarios(a, b)
+        res = vector.converged_scenarios(a, b)
         expected = np.array([True, True, True])
         self.assertTrue(np.array_equal(res, expected))
 
         a = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]).reshape(3, -1, 1)
         b = np.array([0, 2, 3, 4, 0, 6, 7, 8, 0, 10, 11, 12]).reshape(3, -1, 1)
-        res = vector2.converged_scenarios(a, b)
+        res = vector.converged_scenarios(a, b)
         expected = np.array([False, False, False])
         self.assertTrue(np.array_equal(res, expected))
 
@@ -205,26 +205,26 @@ class HolisticVectorTest(unittest.TestCase):
         s = 4
         pm = np.random.choice(a=[False, True], size=(s, t, t))
         r = np.random.randint(100, size=(s, t, 1))
-        cache = vector2.ResultsCache()
+        cache = vector.ResultsCache()
 
-        pm0 = vector2.extract_scenario_data(pm, 0)
-        pm1 = vector2.extract_scenario_data(pm, 1)
-        pm2 = vector2.extract_scenario_data(pm, 2)
-        pm3 = vector2.extract_scenario_data(pm, 3)
+        pm0 = vector.extract_scenario_data(pm, 0)
+        pm1 = vector.extract_scenario_data(pm, 1)
+        pm2 = vector.extract_scenario_data(pm, 2)
+        pm3 = vector.extract_scenario_data(pm, 3)
 
-        r0 = vector2.extract_scenario_data(r, 0)
-        r1 = vector2.extract_scenario_data(r, 1)
-        r2 = vector2.extract_scenario_data(r, 2)
-        r3 = vector2.extract_scenario_data(r, 3)
+        r0 = vector.extract_scenario_data(r, 0)
+        r1 = vector.extract_scenario_data(r, 1)
+        r2 = vector.extract_scenario_data(r, 2)
+        r3 = vector.extract_scenario_data(r, 3)
 
         # cahe 0 scenarios
         mask = np.array([False]*s)
-        vector2.cache_scenario_results(r, pm, mask, cache)
+        vector.cache_scenario_results(r, pm, mask, cache)
         self.assertEqual(len(cache), 0)
 
         # cahe scenario 0
         mask = np.array([True, False, False, False])
-        vector2.cache_scenario_results(r, pm, mask, cache)
+        vector.cache_scenario_results(r, pm, mask, cache)
         self.assertEqual(len(cache), 1)
         self.assertTrue(np.array_equal(cache.get(pm0), r0))
         self.assertTrue(np.array_equal(cache.get(pm1), None))
@@ -233,7 +233,7 @@ class HolisticVectorTest(unittest.TestCase):
 
         # add scenario 3
         mask = np.array([False, False, False, True])
-        vector2.cache_scenario_results(r, pm, mask, cache)
+        vector.cache_scenario_results(r, pm, mask, cache)
         self.assertEqual(len(cache), 2)
         self.assertTrue(np.array_equal(cache.get(pm0), r0))
         self.assertTrue(np.array_equal(cache.get(pm1), None))
@@ -242,7 +242,7 @@ class HolisticVectorTest(unittest.TestCase):
 
         # add scenario 1 and 2
         mask = np.array([False, True, True, False])
-        vector2.cache_scenario_results(r, pm, mask, cache)
+        vector.cache_scenario_results(r, pm, mask, cache)
         self.assertEqual(len(cache), 4)
         self.assertTrue(np.array_equal(cache.get(pm0), r0))
         self.assertTrue(np.array_equal(cache.get(pm1), r1))
@@ -258,21 +258,21 @@ class HolisticVectorTest(unittest.TestCase):
 
         # remove 0 scenarios
         mask = np.array([False, False, False, False])
-        mo1, mo2, mo3 = vector2.remove_scenarios(mask, m1, m2, m3)
+        mo1, mo2, mo3 = vector.remove_scenarios(mask, m1, m2, m3)
         self.assertTrue(np.array_equal(m1, mo1))
         self.assertTrue(np.array_equal(m2, mo2))
         self.assertTrue(np.array_equal(m3, mo3))
 
         # remove scenario 0
         mask = np.array([True, False, False, False])
-        mo1, mo2, mo3 = vector2.remove_scenarios(mask, m1, m2, m3)
+        mo1, mo2, mo3 = vector.remove_scenarios(mask, m1, m2, m3)
         self.assertEqual(m1.shape[0], mo1.shape[0] + 1)
         self.assertEqual(m2.shape[0], mo2.shape[0] + 1)
         self.assertEqual(m3.shape[0], mo3.shape[0] + 1)
 
         # remove every scenario
         mask = np.array([True, True, True, True])
-        mo1, mo2, mo3 = vector2.remove_scenarios(mask, m1, m2, m3)
+        mo1, mo2, mo3 = vector.remove_scenarios(mask, m1, m2, m3)
         self.assertEqual(m1.shape[0], mo1.shape[0] + 4)
         self.assertEqual(m2.shape[0], mo2.shape[0] + 4)
         self.assertEqual(m3.shape[0], mo3.shape[0] + 4)
@@ -283,24 +283,24 @@ class HolisticVectorTest(unittest.TestCase):
         pm = np.random.choice(a=[False, True], size=(s, t, t))
         r = np.random.randint(100, size=(s, t, 1))
 
-        pm0 = vector2.extract_scenario_data(pm, 0)
-        pm1 = vector2.extract_scenario_data(pm, 1)
-        pm2 = vector2.extract_scenario_data(pm, 2)
-        pm3 = vector2.extract_scenario_data(pm, 3)
+        pm0 = vector.extract_scenario_data(pm, 0)
+        pm1 = vector.extract_scenario_data(pm, 1)
+        pm2 = vector.extract_scenario_data(pm, 2)
+        pm3 = vector.extract_scenario_data(pm, 3)
 
-        r0 = vector2.extract_scenario_data(r, 0)
-        r1 = vector2.extract_scenario_data(r, 1)
-        r2 = vector2.extract_scenario_data(r, 2)
-        r3 = vector2.extract_scenario_data(r, 3)
+        r0 = vector.extract_scenario_data(r, 0)
+        r1 = vector.extract_scenario_data(r, 1)
+        r2 = vector.extract_scenario_data(r, 2)
+        r3 = vector.extract_scenario_data(r, 3)
 
-        cache = vector2.ResultsCache()
+        cache = vector.ResultsCache()
         cache.insert(pm0, r0)
         cache.insert(pm1, r1)
         cache.insert(pm2, r2)
         cache.insert(pm3, r3)
 
         expected = r.ravel(order="F").reshape(t, s)
-        res = vector2.build_results_from_cache(pm, cache)
+        res = vector.build_results_from_cache(pm, cache)
         self.assertTrue(np.array_equal(expected, res))
 
     def test_cached_analysis(self):
@@ -311,7 +311,7 @@ class HolisticVectorTest(unittest.TestCase):
         holistic1.apply(system)
         results1 = [t.wcrt for t in system.tasks]
 
-        holistic2 = vector2.VectorHolisticFPAnalysis()
+        holistic2 = vector.VectorHolisticFPAnalysis()
         analysis.reset_wcrt(system)
         holistic2.apply(system)
         results2 = [t.wcrt for t in system.tasks]
@@ -321,7 +321,7 @@ class HolisticVectorTest(unittest.TestCase):
     def test_cached_analysis_scenarios(self):
         system = examples.get_palencia_system()
         extractor = gradient.PriorityExtractor()
-        mapper = vector2.PrioritiesMatrix()
+        mapper = vector.PrioritiesMatrix()
         pd = assignment.PDAssignment()
 
         v1 = extractor.extract(system)
@@ -330,7 +330,7 @@ class HolisticVectorTest(unittest.TestCase):
         pm = mapper.apply(system, [v1, v2])
 
         holistic1 = vector.VectorHolisticFPAnalysis()
-        holistic2 = vector2.VectorHolisticFPAnalysis()
+        holistic2 = vector.VectorHolisticFPAnalysis()
 
         analysis.reset_wcrt(system)
         holistic1.apply(system, scenarios=pm)
@@ -352,7 +352,7 @@ class HolisticVectorTest(unittest.TestCase):
         holistic1.apply(system)
         results1 = [t.wcrt for t in system.tasks]
 
-        holistic2 = vector2.VectorHolisticFPAnalysis()
+        holistic2 = vector.VectorHolisticFPAnalysis()
         analysis.reset_wcrt(system)
         holistic2.apply(system)
         results2 = [t.wcrt for t in system.tasks]
@@ -363,7 +363,7 @@ class HolisticVectorTest(unittest.TestCase):
         rnd = random.Random(1)
         system = examples.get_small_system(random=rnd, utilization=0.7, balanced=True)
         extractor = gradient.PriorityExtractor()
-        mapper = vector2.PrioritiesMatrix()
+        mapper = vector.PrioritiesMatrix()
         pd = assignment.PDAssignment()
 
         v1 = extractor.extract(system)
@@ -372,7 +372,7 @@ class HolisticVectorTest(unittest.TestCase):
         pm = mapper.apply(system, [v1, v2])
 
         holistic1 = vector.VectorHolisticFPAnalysis()
-        holistic2 = vector2.VectorHolisticFPAnalysis()
+        holistic2 = vector.VectorHolisticFPAnalysis()
 
         analysis.reset_wcrt(system)
         holistic1.apply(system, scenarios=pm)
@@ -387,29 +387,29 @@ class HolisticVectorTest(unittest.TestCase):
         system = examples.get_palencia_system()
         pd = assignment.PDAssignment()
         t = len(system.tasks)
-        cache = vector2.ResultsCache()
+        cache = vector.ResultsCache()
 
         # build priority matrices
-        pm1 = vector2.system_priority_matrix(system)
+        pm1 = vector.system_priority_matrix(system)
         pd.apply(system)
-        pm2 = vector2.system_priority_matrix(system)
+        pm2 = vector.system_priority_matrix(system)
         pm = np.full((2, t, t), False)
         pm[0,:,:] = pm1
         pm[1,:,:] = pm2
 
         # empty cache
-        pm_a = vector2.prune_known_scenarios(pm, cache)
+        pm_a = vector.prune_known_scenarios(pm, cache)
         self.assertTrue(np.all(pm == pm_a))
 
         # cache one scenario
         cache.insert(pm2, "a result")
-        pm_b = vector2.prune_known_scenarios(pm, cache)
+        pm_b = vector.prune_known_scenarios(pm, cache)
         self.assertEqual(pm_b.shape[0], 1)
         self.assertTrue(np.all(pm1 == pm[0,:,:]))
 
         # cache both scenario
         cache.insert(pm1, "a result")
-        pm_b = vector2.prune_known_scenarios(pm, cache)
+        pm_b = vector.prune_known_scenarios(pm, cache)
         self.assertEqual(pm_b.shape[0], 0)
 
 
