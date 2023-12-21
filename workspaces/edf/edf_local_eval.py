@@ -1,14 +1,14 @@
-from model import System
+from model import System, SchedulerType
 from gradient import *
 from analysis import *
-from assignment import PDAssignment, HOPAssignment, repr_priorities,EQFAssignment, EQSAssignment
+from assignment import PDAssignment, HOPAssignment, repr_priorities, EQFAssignment, EQSAssignment, repr_deadlines_mini
 from vector import VectorHolisticFPBatchCosts
 from evaluation import SchedRatioEval
 from examples import get_system
 from random import Random
 from fast_analysis import FastHolisticFPAnalysis
 from functools import partial
-from mast.mast_tools import MastHolisticAnalysis
+from mast_tools import MastHolisticAnalysis
 
 
 def item(system, analysis, assignment):
@@ -61,7 +61,7 @@ if __name__ == '__main__':
     size = (3, 4, 3)  # flows, tasks, procs
     n = 50
     systems = [get_system(size, rnd, balanced=True, name=str(i),
-                          deadline_factor_min=0.5,
+                          deadline_factor_min=0.5, sched=SchedulerType.EDF,
                           deadline_factor_max=1) for i in range(n)]
 
     # utilizations between 50 % and 90 %

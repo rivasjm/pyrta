@@ -158,7 +158,7 @@ class Task:
         self.flow = None
         self.name = name
         self.wcet = wcet
-        self.processor: processor.Processor = processor
+        self.processor: Processor = processor
         self.type = type
 
         self.priority: int = priority
@@ -167,7 +167,7 @@ class Task:
         self.bcet = bcet
 
     def __repr__(self):
-        return f"{self.processor.name}({self.wcet:.2f})"
+        return f"{self.processor.name if self.processor else None}({self.utilization:.2f})"
 
     @property
     def utilization(self):
@@ -226,3 +226,11 @@ def restore_attrs(elements: [], attrs: [str], key="_saved_") -> None:
             if hasattr(element, key + attr):
                 value = getattr(element, key + attr)
                 setattr(element, attr, value)
+
+
+def is_FP(system: System) -> bool:
+    return all(proc.sched == SchedulerType.FP for proc in system.processors)
+
+
+def is_EDF(system: System) -> bool:
+    return all(proc.sched == SchedulerType.EDF for proc in system.processors)

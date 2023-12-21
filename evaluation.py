@@ -13,7 +13,7 @@ import assignment
 
 class SchedRatioEval:
     """Class to perform a Schedulability Ratio evaluation over a utilization series"""
-    def __init__(self, name, labels, funcs, systems, utilizations, threads):
+    def __init__(self, name, labels, funcs, systems, utilizations, threads, preprocessor=None):
         assert len(labels) == len(funcs)
         self.name = name                    # name of the study. used to name output files
         self.labels = labels                # label for each function (same length as funcs)
@@ -21,6 +21,7 @@ class SchedRatioEval:
         self.systems = systems              # population of systems
         self.utilizations = utilizations    # utilizations array (usually: each number between [0,1], and increasing)
         self.threads = threads              # number of CPU threads to use
+        self.preprocessor = preprocessor    # function to pre-process system before analyzing it (optional)
         self.start = 0                      # starting time
 
     def run(self):
@@ -51,6 +52,8 @@ class SchedRatioEval:
         results = np.zeros(len(self.funcs), dtype=np.int8)
         a = assignment.extract_assignment(system)
         for f, func in enumerate(self.funcs):
+            if self.preprocessor:
+                self.preprocessor(system)
             reset_wcrt(system)
             sched = func(system)
             assignment.insert_assignment(system, a)
@@ -63,7 +66,7 @@ class SchedRatioEval:
         length = len(self.utilizations)
         if length > 1:
             self._line_chart(label, data, ylabel="Schedulables", save=True, show=True)
-        self._bar_chart(label, data, ylabel="Schedulables", save=True, show=length == 1)
+        self._bar_chart(label, data, ylabel="Schedulables", save=True, show=length==1)
         self._excel(label, data)
 
     def _line_chart(self, label, data, ylabel, save=True, show=True):

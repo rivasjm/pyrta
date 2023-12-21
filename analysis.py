@@ -1,3 +1,4 @@
+import model
 from model import Task, System, Processor
 import math
 
@@ -64,6 +65,11 @@ class HolisticLocalEDFAnalysis:
             return cls._wab(task, psi, p, wab)
 
     def apply(self, system: System) -> None:
+        if not model.is_EDF(system):
+            print("System is not EDF")
+            reset_wcrt(system)
+            return
+
         init_wcrt(system)
         try:
             while True:
@@ -128,6 +134,11 @@ class HolisticGlobalEDFAnalysis:
         return psi
 
     def apply(self, system: System) -> None:
+        if not model.is_EDF(system):
+            print("System is not EDF")
+            reset_wcrt(system)
+            return
+
         init_wcrt(system)
         try:
             while True:
@@ -376,7 +387,7 @@ def reset_wcrt(system: System):
 def repr_wcrts(system: System) -> str:
     msg = ""
     for flow in system.flows:
-        ts = " ".join(map(lambda t: f"{t.wcrt if t.wcrt else 0:.2f}", flow.tasks))
+        ts = " ".join(map(lambda t: f"{t.wcrt if t.wcrt else -1:.2f}", flow.tasks))
         msg += f"{flow.period}: {ts} : {flow.deadline}\n"
     return msg
 

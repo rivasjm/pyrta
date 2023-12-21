@@ -8,6 +8,7 @@ from examples import get_system
 from random import Random
 from fast_analysis import FastHolisticFPAnalysis
 from functools import partial
+import generator
 
 
 def gdpa(system: System) -> bool:
@@ -85,6 +86,6 @@ if __name__ == '__main__':
              ("gdpa-mapping", gdpa_mapping)]
 
     labels, funcs = zip(*tools)
-    runner = SchedRatioEval("mapping-seed42", labels=labels, funcs=funcs,
-                            systems=systems, utilizations=utilizations, threads=6)
+    runner = SchedRatioEval("mapping(42)-unbalanced", labels=labels, funcs=funcs, systems=systems,
+                            utilizations=utilizations, threads=6, preprocessor=generator.unbalance)
     runner.run()

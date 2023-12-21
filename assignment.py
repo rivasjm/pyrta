@@ -393,3 +393,7 @@ def repr_deadlines(system: System) -> str:
         ts = " ".join(map(lambda t: f"{t.deadline:.2f}[{t.processor.name}]", flow.tasks))
         msg += f"{flow.period:.2f}: {ts} : {flow.deadline:.2f}\n"
     return msg
+
+
+def repr_deadlines_mini(system: System) -> str:
+    return "sd=[" + " ".join([f"{t.deadline:.2f}" for t in system.tasks]) + "]"

@@ -76,6 +76,31 @@ def generate_system(random: Random, n_flows, n_tasks, n_procs, utilization, sche
     return system
 
 
+def unbalance(system: System):
+    """Heavily unbalance the system by using the least amount of processors possible"""
+    bins = []
+    bin = []
+    u = 0
+    for task in system.tasks:
+        task.processor = None
+        if u + task.utilization < 1:
+            bin.append(task)
+            u += task.utilization
+        else:
+            bins.append(bin)
+            bin = [task]
+            u = task.utilization
+
+    if len(bin) > 0:
+        bins.append(bin)
+
+    procs = system.processors
+    for i, bin in enumerate(bins):
+        proc = procs[i % len(procs)]
+        for task in bin:
+            task.processor = proc
+
+
 def to_edf(system: System):
     for proc in system.processors:
         proc.sched = SchedulerType.EDF
@@ -119,11 +144,11 @@ def create_series(template: System, utilizations) -> [System]:
     return systems
 
 
-def walk_series(system: System, utilizations, callback) -> None:
-    save_tasks_params(system)
-    for utilization in utilizations:
-        for proc in system.processors:
-            set_processor_utilization(proc, utilization)
-        if callback:
-            callback(system)
-    restore_tasks_params(system)
+# def walk_series(system: System, utilizations, callback) -> None:
+#     save_tasks_params(system)
+#     for utilization in utilizations:
+#         for proc in system.processors:
+#             set_processor_utilization(proc, utilization)
+#         if callback:
+#             callback(system)
+#     restore_tasks_params(system)

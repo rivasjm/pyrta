@@ -81,7 +81,7 @@ def analyze(system: System, analysis: MastAnalysis, assignment: MastAssignment =
 
         # save wcrts into the system
         for task in system.tasks:
-            task.wcrt = results[task.name] if task.name in results else limit
+            task.wcrt = results[task.name] if task.name in results else None
 
         # sanity check: system schedulability must match
         if system.is_schedulable() != schedulable:

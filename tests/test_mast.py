@@ -102,7 +102,7 @@ class MASTHolisticTest(unittest.TestCase):
         to_edf(system)
 
         # assign PD deadlines
-        pd = PDAssignment(globalize=True)
+        pd = PDAssignment()
         pd.apply(system)
 
         # there seems to be a float precision problem in MAST when exporting the systems with many decimal places
@@ -162,7 +162,7 @@ class MASTHolisticTest(unittest.TestCase):
             to_edf(system)
 
             # assign PD deadlines
-            pd = PDAssignment(globalize=True)
+            pd = PDAssignment()
             pd.apply(system)
 
             # there seems to be a float precision problem in MAST when exporting the systems with many decimal places
