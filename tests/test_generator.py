@@ -26,4 +26,14 @@ class GeneratorTest(unittest.TestCase):
         self.assertTrue(all([u < 1 for u in us_end]))
         self.assertAlmostEqual(u_ini, u_end)
 
+    def test_system_utilization(self):
+        r = Random(42)
+        system = examples.get_medium_system(random=r, utilization=0.5)
+        tasks = system.tasks
+
+        target_utilization = 0.7
+        generator.set_system_utilization(system, target_utilization)
+        u = sum([t.utilization for t in tasks])
+
+        self.assertEqual(target_utilization*len(system.processors), u)
 

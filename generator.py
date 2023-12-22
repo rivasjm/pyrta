@@ -32,8 +32,19 @@ def set_processor_utilization(processor: Processor, utilization: float):
 
 
 def set_utilization(system: System, utilization: float):
+    """Sets the given system utilization, by setting the utilization of every processor to the same value"""
     for proc in system.processors:
         set_processor_utilization(proc, utilization)
+
+
+def set_system_utilization(system: System, utilization: float):
+    """Sets the WCET's of the tasks such that the sum of all tasks utilization divided by the number of processors
+       is equal to 'utilization'"""
+    tasks = system.tasks
+    u = sum([task.utilization for task in tasks])
+    factor = utilization * len(system.processors) / u
+    for task in tasks:
+        task.wcet *= factor
 
 
 def generate_system(random: Random, n_flows, n_tasks, n_procs, utilization, sched: SchedulerType,

@@ -13,7 +13,8 @@ import assignment
 
 class SchedRatioEval:
     """Class to perform a Schedulability Ratio evaluation over a utilization series"""
-    def __init__(self, name, labels, funcs, systems, utilizations, threads, preprocessor=None):
+    def __init__(self, name, labels, funcs, systems, utilizations, threads,
+                 preprocessor=None, utilization_func=set_utilization):
         assert len(labels) == len(funcs)
         self.name = name                    # name of the study. used to name output files
         self.labels = labels                # label for each function (same length as funcs)
@@ -22,7 +23,8 @@ class SchedRatioEval:
         self.utilizations = utilizations    # utilizations array (usually: each number between [0,1], and increasing)
         self.threads = threads              # number of CPU threads to use
         self.preprocessor = preprocessor    # function to pre-process system before analyzing it (optional)
-        self.start = 0                      # starting time
+        self.utilization_func = utilization_func  # function to set the system utilization
+        self.start = None                   # starting time
 
     def run(self):
         self.start = time.time()
@@ -32,7 +34,7 @@ class SchedRatioEval:
         for u_index, u in enumerate(self.utilizations):
             # set utilization to every system
             for s in self.systems:
-                set_utilization(s, u)
+                self.utilization_func(s, u)
 
             # finish all the executions for one utilization before advancing to the next utilization
             # use a thread pool to accelerate the execution

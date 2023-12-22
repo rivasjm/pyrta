@@ -86,6 +86,7 @@ if __name__ == '__main__':
              ("gdpa-mapping", gdpa_mapping)]
 
     labels, funcs = zip(*tools)
-    runner = SchedRatioEval("mapping(42)-unbalanced", labels=labels, funcs=funcs, systems=systems,
-                            utilizations=utilizations, threads=6, preprocessor=generator.unbalance)
+    runner = SchedRatioEval("mapping(42)-unbalanced2", labels=labels, funcs=funcs, systems=systems,
+                            utilizations=utilizations, threads=6,
+                            preprocessor=generator.unbalance, utilization_func=generator.set_system_utilization)
     runner.run()
