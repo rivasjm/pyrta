@@ -1,3 +1,5 @@
+import mlx.core
+
 from model import System
 import mlx.core as np
 from gradient_funcs import BatchCostFunction
@@ -205,7 +207,7 @@ class VectorHolisticFPAnalysis:
 
                     # Eq. (1) of "On the schedulability Analysis for Distributed Hard Real-Time Systems"
                     w = pm * np.ceil((w + pm * j.transpose(0, 2, 1)) / periods.T) @ wcets + p * wcets
-                    w = w*~p_mask  # do not consider W's of tasks that have reached their p-limit already
+                    w = w*np.logical_not(p_mask)  # do not consider W's of tasks that have reached their p-limit already
 
                     # response time for this w. used to stop as early as possible if a task surpassed its WCRT limit
                     r = w - (p - 1) * periods + j
@@ -370,7 +372,7 @@ def cache_scenario_results(r, pm, scenarios, cache: ResultsCache):
     scenarios is a (s) boolean matrix indicating which scenarios to cache
     cache is the storage of results. key a 2D (t,t) priority matrix, value the (t,1) results
     """
-    for s in np.where(scenarios)[0]:
+    for s in true_indices(scenarios):
         key = extract_scenario_data(pm, s)
         value = extract_scenario_data(r, s)
         cache.insert(key, value)
@@ -391,7 +393,7 @@ def remove_scenarios(scenarios, *matrices):
     Removes the indicated scenarios from the matrices, and returns them
     """
     indices = true_indices(np.logical_not(scenarios))
-    res = [matrix[indices,:] for matrix in matrices]
+    res = [matrix[indices, :] for matrix in matrices]
     return res
 
 
