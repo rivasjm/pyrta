@@ -11,14 +11,19 @@ class Simulation:
 
     def run(self, until):
         for flow in self.system.flows:
-            self.env.process(self._process_flow(flow))
+            self.env.process(self._flow_dispatcher(flow))
         self.env.run(until=until)
 
+    def _flow_dispatcher(self, flow: Flow):
+        while True:
+            self.env.process(self._process_flow(flow))
+            yield self.env.timeout(flow.period)
+
     def _process_flow(self, flow: Flow):
-        print(f"{self.env.now}: flow {flow.name} RELEASED")
+        print(f"{self.env.now}: flow {flow.name} [T={flow.period} D={flow.deadline}] RELEASED")
         for task in flow.tasks:
             yield self.env.process(self._process_task(task))
-        print(f"{self.env.now}: flow {flow.name} FINISHED")
+        print(f"{self.env.now}: flow {flow.name} [T={flow.period} D={flow.deadline}] FINISHED")
 
     def _process_task(self, task: Task):
         resource = self.resources[task.processor]
