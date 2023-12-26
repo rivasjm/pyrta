@@ -97,6 +97,7 @@ class Flow:
         self.period = period
         self.deadline = deadline
         self.tasks = list()
+        self.phase = 0  # for simulation
 
     def add_tasks(self, *tasks):
         self.tasks += tasks
@@ -155,7 +156,8 @@ class Task:
                  processor: Processor = None,
                  type: TaskType = TaskType.Activity,
                  priority: int = 1,
-                 bcet: float = 0):
+                 bcet: float = 0,
+                 deadline=0):
         self.flow = None
         self.name = name
         self.wcet = wcet
@@ -163,12 +165,12 @@ class Task:
         self.type = type
 
         self.priority: int = priority
-        self.deadline = 0
+        self.deadline = deadline
         self.wcrt = None
         self.bcet = bcet
 
     def __repr__(self):
-        return f"{self.processor.name if self.processor else None}({self.utilization:.2f})"
+        return f"{self.name} ({self.processor.name if self.processor else None},{self.utilization:.2f})"
 
     @property
     def utilization(self):

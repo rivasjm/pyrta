@@ -30,6 +30,8 @@ class Simulation:
 
     def _flow_dispatcher(self, flow: Flow):
         while True:
+            if flow.phase > 0:
+                yield self.env.timeout(delay=flow.phase)
             self.env.process(self._process_flow(flow))
             yield self.env.timeout(flow.period)
 
@@ -79,7 +81,8 @@ class Simulation:
                     except simpy.Interrupt:  # task was preempted
                         remaining -= (self.env.now - start)
                         self._print(f"{self.env.now}: task {task.name} [{repr(task)} rem={remaining}] PREEMPTED")
-                        self.res.add_task_interval(task, task.processor, start, self.env.now)
+                        if self.env.now > start:  # avoid intervals in which start==end
+                            self.res.add_task_interval(task, task.processor, start, self.env.now)
 
             finish_time = self.env.now
             self.res.add_task_result(task, flow_release_time, release_time, finish_time)
@@ -132,7 +135,7 @@ class SimResults:
         return ret == wort(last_task, self.task_results)
 
     def intervals(self, task):
-        return self.task_intervals[task]
+        return [(i[1],i[2]) for i in self.task_intervals[task]]
 
 
 def wort(key, data):
