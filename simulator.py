@@ -29,9 +29,9 @@ class Simulation:
             print(msg)
 
     def _flow_dispatcher(self, flow: Flow):
+        if flow.phase > 0:
+            yield self.env.timeout(delay=flow.phase)
         while True:
-            if flow.phase > 0:
-                yield self.env.timeout(delay=flow.phase)
             self.env.process(self._process_flow(flow))
             yield self.env.timeout(flow.period)
 
