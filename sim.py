@@ -1,4 +1,6 @@
 import simpy
+
+import model
 from model import System, Task, Flow
 import math
 
@@ -42,33 +44,54 @@ class Simulation:
         self.res.add_flow_result(flow, release_time, finish_time)
 
     def _process_task(self, task: Task, flow_release_time):
-        resource = self.resources[task.processor]
-        priority = self.max_priority - task.priority
-        remaining = task.wcet
-        start = self.env.now  # I need to define a value here
-        release_time = self.env.now
-        self._print(f"{self.env.now}: task {task.name} [{repr(task)} rem={remaining}] RELEASED")
+        assert task.type in model.TaskType
 
-        while remaining > 0:
-            with resource.request(priority=priority) as req:
-                try:
-                    yield req
-                    start = self.env.now
-                    self._print(f"{self.env.now}: task {task.name} [{repr(task)} rem={remaining}] STARTED")
-                    yield self.env.timeout(remaining)
-                    remaining -= (self.env.now - start)
-                    self._print(f"{self.env.now}: task {task.name} [{repr(task)} rem={remaining}] FINISHED")
-                    assert remaining == 0
+        if task.type == model.TaskType.Delay:
+            self._print(f"{self.env.now}: DELAY of {task.wcet}")
+            yield self.env.timeout(delay=task.wcet)
 
-                    self.res.add_task_interval(task, task.processor, start, self.env.now)
+        elif task.type == model.TaskType.Offset:
+            self._print(f"{self.env.now}: OFFSET unitl {task.wcet}")
+            delay = flow_release_time + task.wcet - self.env.now
+            yield self.env.timeout(delay = max(0, delay))
 
-                except simpy.Interrupt:  # task was preempted
-                    remaining -= (self.env.now - start)
-                    self._print(f"{self.env.now}: task {task.name} [{repr(task)} rem={remaining}] PREEMPTED")
-                    self.res.add_task_interval(task, task.processor, start, self.env.now)
+        else:
+            release_time = self.env.now
+            resource = self.resources[task.processor]
+            priority = self._process_priority(task, flow_release_time, release_time)
+            remaining = task.wcet
+            self._print(f"{self.env.now}: task {task.name} [{repr(task)} rem={remaining} prio={priority}] RELEASED")
+            start = self.env.now  # I need to define a value here (outside try)
 
-        finish_time = self.env.now
-        self.res.add_task_result(task, flow_release_time, release_time, finish_time)
+            while remaining > 0:
+                with resource.request(priority=priority) as req:
+                    try:
+                        yield req
+                        start = self.env.now
+                        self._print(f"{self.env.now}: task {task.name} [{repr(task)} rem={remaining}] STARTED")
+                        yield self.env.timeout(remaining)
+                        remaining -= (self.env.now - start)
+                        self._print(f"{self.env.now}: task {task.name} [{repr(task)} rem={remaining}] FINISHED")
+                        assert remaining == 0
+
+                        self.res.add_task_interval(task, task.processor, start, self.env.now)
+
+                    except simpy.Interrupt:  # task was preempted
+                        remaining -= (self.env.now - start)
+                        self._print(f"{self.env.now}: task {task.name} [{repr(task)} rem={remaining}] PREEMPTED")
+                        self.res.add_task_interval(task, task.processor, start, self.env.now)
+
+            finish_time = self.env.now
+            self.res.add_task_result(task, flow_release_time, release_time, finish_time)
+
+    def _process_priority(self, task: Task, flow_release_time, task_release_time):
+        assert task.processor.sched in model.SchedulerType
+        if task.processor.sched == model.SchedulerType.FP:
+            return self.max_priority - task.priority
+        elif task.processor.sched == model.SchedulerType.EDF and task.processor.local:
+            return task_release_time + task.deadline
+        elif task.processor.sched == model.SchedulerType.EDF and not task.processor.local:
+            return flow_release_time + task.deadline
 
 
 class SimResults:
@@ -107,6 +130,9 @@ class SimResults:
         ret = wort(flow, self.flow_results)
         last_task = flow.tasks[len(flow.tasks)-1]
         return ret == wort(last_task, self.task_results)
+
+    def intervals(self, task):
+        return self.task_intervals[task]
 
 
 def wort(key, data):

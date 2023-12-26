@@ -70,10 +70,11 @@ class SchedulerType(Enum):
 
 
 class Processor:
-    def __init__(self, name, sched=SchedulerType.FP):
+    def __init__(self, name, sched=SchedulerType.FP, local=True):
         self.system = None
         self.name = name
         self.sched = sched
+        self.local = local      # local=True means no clock sync (EDF-L). No meaning in FP.
 
     def __repr__(self):
         return f"{self.name}"
