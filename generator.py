@@ -112,9 +112,10 @@ def unbalance(system: System):
             task.processor = proc
 
 
-def to_edf(system: System):
+def to_edf(system: System, local=True):
     for proc in system.processors:
         proc.sched = SchedulerType.EDF
+        proc.local = local
     return system
 
 

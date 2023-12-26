@@ -126,6 +126,10 @@ class SimResults:
     def add_flow_result(self, flow, release_time, finish_time):
         add_result(self.flow_results, flow, (release_time, finish_time))
 
+    def task_rts(self, task):
+        rts = list(map(lambda r: r[1] - r[0], self.task_results[task]))
+        return rts
+
     def task_wort(self, task):
         return wort(task, self.task_results)
 
