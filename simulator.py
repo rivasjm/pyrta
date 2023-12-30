@@ -3,6 +3,7 @@ import simpy
 import model
 from model import System, Task, Flow
 import math
+import random
 
 
 class Simulation:
@@ -136,7 +137,8 @@ class SimResults:
     def flow_wort(self, flow):
         ret = wort(flow, self.flow_results)
         last_task = flow.tasks[len(flow.tasks)-1]
-        return ret == wort(last_task, self.task_results)
+        assert ret == wort(last_task, self.task_results)
+        return ret
 
     def intervals(self, task):
         return [(i[1],i[2]) for i in self.task_intervals[task]]
@@ -155,9 +157,63 @@ def add_result(dic, key, element):
     dic[key].append(element)
 
 
+class SimRandomizer:
+    def __init__(self, system: System, seed=0, callback=None, verbose=False):
+        self.system = system
+        self.seed = seed
+        self.verbose = verbose
+        self.rnd = random.Random(seed)
+        self.callback = callback
+        self.phases = [flow.phase for flow in self.system.flows]
+        self.results = []
+
+    def run(self, until, iterations):
+        for i in range(iterations):
+            if self.verbose:
+                print(".", end="")
+            self._randomize_flow_phases(self.system.flows)
+            sim = Simulation(self.system, verbose=False)
+            sim.run(until=until)
+            if self.callback:
+                self.callback(sim, i, until, self.seed)
+            self.results.append(sim.results)
+        if self.verbose:
+            print("")
+
+        # restore flow phases
+        for flow, phase in zip(self.system.flows, self.phases):
+            flow.phase = phase
+
+    def _randomize_flow_phases(self, flows):
+        for flow in flows:
+            phase = self.rnd.randrange(0, flow.period)
+            flow.phase = phase
+
+
+def max_flow_wort(flow, results: []):
+    ret = 0
+    for res in results:
+        w = res.flow_wort(flow)
+        if w > ret:
+            ret = w
+    return ret
+
+
+def max_task_wort(task, results: []):
+    ret = 0
+    for res in results:
+        w = res.task_wort(task)
+        if w > ret:
+            ret = w
+    return ret
+
+
 def repr(task: Task) -> str:
     return f"proc={task.processor.name} prio={task.priority} wcet={task.wcet}"
 
+
+def hyperperiod(system: System):
+    return math.lcm(*[f.period for f in system.flows])
 
 
 if __name__ == '__main__':
@@ -169,7 +225,7 @@ if __name__ == '__main__':
     holistic.apply(system)
 
     sim = Simulation(system, verbose=False)
-    sim.run(math.lcm(*[f.period for f in system.flows]))
+    sim.run(hyperperiod(system))
     print(sim.results.repr())
     print(analysis.repr_wcrts(system))
     print(sim.results.pessimism())

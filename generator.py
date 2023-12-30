@@ -125,6 +125,8 @@ def to_int(system: System):
         flow.deadline = int(flow.deadline)
         for task in flow.tasks:
             task.wcet = int(task.wcet)
+            if task.wcet == 0:
+                task.wcet = 1
             task.deadline = int(task.deadline)
             task.priority = int(task.priority)
     return system
