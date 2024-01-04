@@ -1,4 +1,7 @@
 from random import Random
+
+import generator
+import simulator
 from generator import generate_system, set_utilization
 from model import *
 import numpy as np
@@ -80,6 +83,23 @@ def get_system(size, random=Random(), utilization=0.5, balanced=False, name=None
                              balanced=balanced)
     system.name = name
     return system
+
+
+def get_fast_systems(number, population, size, random=Random(), utilization=0.5, balanced=False, name="system",
+                     deadline_factor_min=0.5, deadline_factor_max=1, sched: SchedulerType = SchedulerType.FP):
+    assert number <= population
+    # generate population
+    systems = [get_system(size, random, utilization, balanced, f"{name}{i}",
+                          deadline_factor_min, deadline_factor_max, sched) for i in range(population)]
+
+    # to integer values
+    systems = list(map(generator.to_int, systems))
+
+    # sort by hyperperiod
+    systems.sort(key=simulator.hyperperiod)
+
+    # get "number" systems with shortest hyperperiod
+    return systems[:number]
 
 
 def get_barely_schedulable() -> System:

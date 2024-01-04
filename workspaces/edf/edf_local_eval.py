@@ -1,3 +1,6 @@
+import examples
+import generator
+import gradient
 from model import System, SchedulerType
 from gradient import *
 from analysis import *
@@ -9,6 +12,7 @@ from random import Random
 from fast_analysis import FastHolisticFPAnalysis
 from functools import partial
 from mast_tools import MastHolisticAnalysis
+import simulator
 
 
 def item(system, analysis, assignment):
@@ -36,7 +40,7 @@ def edf_local_hopa(system: System) -> bool:
 
 def edf_local_gdpa(system: System) -> bool:
     analysis = HolisticLocalEDFAnalysis(limit_factor=10, reset=False)
-    extractor = DeadlineExtractor()
+    extractor = DeadlineExtractor(compressor=gradient.sigmoid)
     cost_function = InvslackCost(extractor=extractor, analysis=analysis)
     stop_function = StandardStop(limit=100)
     delta_function = AvgSeparationDelta(factor=1.5)
@@ -52,7 +56,7 @@ def edf_local_gdpa(system: System) -> bool:
                                         verbose=False)
 
     PDAssignment().apply(system)
-    return item(system, MastHolisticAnalysis(limit_factor=1, local=True), optimizer)
+    return item(system, HolisticLocalEDFAnalysis(limit_factor=1, reset=True), optimizer)
 
 
 if __name__ == '__main__':
@@ -60,9 +64,13 @@ if __name__ == '__main__':
     rnd = Random(42)
     size = (3, 4, 3)  # flows, tasks, procs
     n = 50
-    systems = [get_system(size, rnd, balanced=True, name=str(i),
-                          deadline_factor_min=0.5, sched=SchedulerType.EDF,
-                          deadline_factor_max=1) for i in range(n)]
+
+    systems = examples.get_fast_systems(n, 1000, size, rnd, balanced=True, name="small",
+                                        deadline_factor_min=0.5, sched=SchedulerType.EDF,
+                                        deadline_factor_max=1)
+
+    for i, s in enumerate(systems):
+        print(f"{i} h={simulator.hyperperiod(s)}")
 
     # utilizations between 50 % and 90 %
     utilizations = np.linspace(0.5, 0.9, 20)
@@ -74,6 +82,6 @@ if __name__ == '__main__':
              ("EDF-L GDPA", edf_local_gdpa)]
 
     labels, funcs = zip(*tools)
-    runner = SchedRatioEval("edf_local_mast", labels=labels, funcs=funcs,
+    runner = SchedRatioEval("edf_local_sigmoid", labels=labels, funcs=funcs,
                             systems=systems, utilizations=utilizations, threads=6)
     runner.run()

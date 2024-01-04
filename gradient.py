@@ -3,7 +3,6 @@ from model import System
 import math
 from assignment import extract_assignment, insert_assignment
 import numpy as np
-
 from vector import VectorHolisticFPBatchCosts
 
 
@@ -360,3 +359,11 @@ class NoisyAdam(UpdateFunction):
         noisy_gradient = self.noise.apply(S, x, nabla, t)
         update = self.adam.apply(S, x, noisy_gradient, t)
         return update
+
+
+def sigmoid(x):
+  return 1 / (1 + math.exp(-x/100))
+
+
+def map_range(value, old_min, old_max, new_min, new_max):
+    return ((value - old_min) / (old_max - old_min) ) * (new_max - new_min) + new_min
