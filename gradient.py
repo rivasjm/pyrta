@@ -364,7 +364,7 @@ class NoisyAdam(UpdateFunction):
 # def sigmoid(x, lower, upper):
 #     return (upper-lower) / (1 + math.exp(-2*x)) + lower
 
-def sigmoid(x, lower, upper):
+def sigmoid(x):
     return 1 / (1 + math.exp(-x))
 
 

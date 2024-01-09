@@ -1,3 +1,4 @@
+import assignment
 import examples
 import generator
 import gradient
@@ -40,7 +41,7 @@ def edf_local_hopa(system: System) -> bool:
 
 def edf_local_gdpa(system: System) -> bool:
     analysis = HolisticLocalEDFAnalysis(limit_factor=10, reset=False)
-    extractor = DeadlineExtractor(compressor=gradient.sigmoid)
+    extractor = DeadlineExtractor()
     cost_function = InvslackCost(extractor=extractor, analysis=analysis)
     stop_function = StandardStop(limit=100)
     delta_function = AvgSeparationDelta(factor=1.5)
@@ -56,7 +57,10 @@ def edf_local_gdpa(system: System) -> bool:
                                         verbose=False)
 
     PDAssignment().apply(system)
-    return item(system, HolisticLocalEDFAnalysis(limit_factor=1, reset=True), optimizer)
+    schedulable = item(system, HolisticLocalEDFAnalysis(limit_factor=1, reset=True), optimizer)
+    if schedulable and any(t.deadline < 0 for t in system.tasks):
+        print(f"Negative deadlines found in {system.name}, u={system.utilization}, {assignment.repr_deadlines_mini(system)}")
+    return schedulable
 
 
 if __name__ == '__main__':
@@ -68,9 +72,6 @@ if __name__ == '__main__':
     systems = examples.get_fast_systems(n, 1000, size, rnd, balanced=True, name="small",
                                         deadline_factor_min=0.5, sched=SchedulerType.EDF,
                                         deadline_factor_max=1)
-
-    for i, s in enumerate(systems):
-        print(f"{i} h={simulator.hyperperiod(s)}")
 
     # utilizations between 50 % and 90 %
     utilizations = np.linspace(0.5, 0.9, 20)
