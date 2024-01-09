@@ -88,7 +88,7 @@ class StandardGradientDescent(GradientDescentFunction):
 class DeadlineExtractor(Extractor):
     def extract(self, system: System) -> [float]:
         max_d = max([task.deadline for task in system.tasks])
-        x = [t.deadline/max_d for t in system.tasks]
+        x = [sigmoid(t.deadline/max_d) for t in system.tasks]
         return x
 
     def insert(self, system: System, x: [float]):
@@ -361,8 +361,11 @@ class NoisyAdam(UpdateFunction):
         return update
 
 
-def sigmoid(x):
-  return 1 / (1 + math.exp(-x/100))
+# def sigmoid(x, lower, upper):
+#     return (upper-lower) / (1 + math.exp(-2*x)) + lower
+
+def sigmoid(x, lower, upper):
+    return 1 / (1 + math.exp(-x))
 
 
 def map_range(value, old_min, old_max, new_min, new_max):

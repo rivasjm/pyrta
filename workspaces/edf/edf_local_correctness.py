@@ -1,3 +1,4 @@
+import pickle
 import sys
 
 import assignment
@@ -43,11 +44,47 @@ def callback(sim: simulator.Simulation, iteration, until, seed):
     print(".", end="")
     min_pessimism = sim.results.pessimism()[0]
     if min_pessimism < 1:
-        print(f"Anomaly detected with system={system.name}, iteration={iteration}, until={until}, seed={seed}")
+        print(f"Anomaly detected with system={sim.system.name}, iteration={iteration}, until={until}, seed={seed}")
         sys.exit()
 
 
-if __name__ == '__main__':
+def apply_anomaly_deadlines(system):
+    with open("negatives.pkl", "rb") as f:
+        deadlines = pickle.load(f)
+        for t,d in zip(system.tasks, deadlines):
+            t.deadline = d
+
+
+def run_anomaly():
+    seed = 7
+    rnd = random.Random(seed)
+    system = examples.get_small_system(random=rnd, utilization=0.8, balanced=True)
+    system.name = f"seed({seed})"
+    generator.to_edf(system, local=True)
+    generator.to_int(system)
+    print(f"System={system.name}")
+
+    # assign local deadlines with GDPA (hopefully they become negative)
+    # edf_local_gdpa(system)
+    apply_anomaly_deadlines(system)
+    print("   GDPA " + assignment.repr_deadlines_mini(system))
+
+    # apply holistic analysis to obtain WCRT's
+    holistic = analysis.HolisticLocalEDFAnalysis(reset=False)
+    holistic.apply(system)
+    print(f"   holistic schedulable={system.is_schedulable()}")
+
+    # apply simulator to obtain WORT's.
+    # the simulator is applied 100 times until the hyperperiod. Each time with a different transaction phases
+    # the callback is called after one of these 100 runs
+    h = simulator.hyperperiod(system)
+    print(f"   simulation hyperperiod={h} : ", end="")
+    sim = simulator.SimRandomizer(system, seed=0, verbose=True, callback=callback)
+    sim.run(until=h, iterations=100)
+    print("")
+
+
+def run():
     for seed in range(1000):
         rnd = random.Random(seed)
         system = examples.get_small_system(random=rnd, utilization=0.8, balanced=True)
@@ -74,3 +111,6 @@ if __name__ == '__main__':
         sim.run(until=h, iterations=100)
         print("")
 
+
+if __name__ == '__main__':
+    run()
