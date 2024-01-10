@@ -12,7 +12,6 @@ from examples import get_system
 from random import Random
 from fast_analysis import FastHolisticFPAnalysis
 from functools import partial
-from mast_tools import MastHolisticAnalysis
 import simulator
 
 
