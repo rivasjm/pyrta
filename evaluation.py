@@ -29,7 +29,8 @@ class SchedRatioEval:
     def run(self):
         self.start = time.time()
         job = 0
-        results = np.zeros((len(self.utilizations), len(self.labels)))  # schedulability ratio
+        results = np.zeros((len(self.utilizations), len(self.labels)))          # schedulability ratio
+        running_times = np.zeros((len(self.utilizations), len(self.labels)))    # execution times
 
         for u_index, u in enumerate(self.utilizations):
             # set utilization to every system
@@ -41,34 +42,40 @@ class SchedRatioEval:
             # each thread analyzes each system (no 2 threads analyze the same system at the same time)
             with Pool(self.threads) as pool:
                 f = partial(self._step, u_index=u_index)
-                for scheds in pool.imap_unordered(f, self.systems):
+                for scheds, times in pool.imap_unordered(f, self.systems):
                     job += 1
                     results[u_index, :] += scheds
+                    running_times[u_index, :] += times
                     print(f"{datetime.now()} : u={u} job={job}")
 
             # update results file
-            self._save(results)
+            self._save(results, "schedulables")
+            self._save(running_times/len(self.systems), "times", show=False)
 
     def _step(self, system: System, u_index: int):
         """Make sure I leave the system in the same state as before"""
         results = np.zeros(len(self.funcs), dtype=np.int8)
+        times = np.zeros(len(self.funcs), dtype=np.single)
         a = assignment.extract_assignment(system)
         for f, func in enumerate(self.funcs):
             if self.preprocessor:
                 self.preprocessor(system)
             reset_wcrt(system)
+            before = time.perf_counter()
             sched = func(system)
+            after = time.perf_counter()
             assignment.insert_assignment(system, a)
             if sched:
                 results[f] = 1
-        return results
+            times[f] = after - before
+        return results, times
 
-    def _save(self, data):
-        label = f"{self.name}_scheds"
+    def _save(self, data, suffix, show=True):
+        label = f"{self.name}_{suffix}"
         length = len(self.utilizations)
         if length > 1:
-            self._line_chart(label, data, ylabel="Schedulables", save=True, show=True)
-        self._bar_chart(label, data, ylabel="Schedulables", save=True, show=length==1)
+            self._line_chart(label, data, ylabel=suffix, save=True, show=show)
+        self._bar_chart(label, data, ylabel=suffix, save=True, show=length == 1 and show)
         self._excel(label, data)
 
     def _line_chart(self, label, data, ylabel, save=True, show=True):
