@@ -260,7 +260,10 @@ class HolisticFPAnalysis:
         self.reset = reset
         self.verbose = verbose
 
-    def apply(self, system: System) -> None:
+    def __call__(self, system: System) -> System:
+        return self.apply(system)
+
+    def apply(self, system: System) -> System:
         init_wcrt(system)
 
         try:
@@ -280,6 +283,8 @@ class HolisticFPAnalysis:
                 e.task.wcrt = e.response_time
                 for task in e.task.all_successors:
                     task.wcrt = e.response_time
+
+        return system
 
     def _task_analysis(self, task: Task) -> bool:
         p = 1

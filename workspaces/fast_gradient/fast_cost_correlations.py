@@ -43,13 +43,13 @@ def study_corr():
     extractor = PriorityExtractor()
     holistic = HolisticFPAnalysis(limit_factor=10, reset=False)
     ref = InvslackCost(extractor=extractor, analysis=holistic)
-    fig, axs = plt.subplots(nrows=2, ncols=3, figsize=(10, 8))
+    fig, axs = plt.subplots(nrows=2, ncols=3, figsize=(20, 8))
 
     costs = [InvslackCost(extractor, analysis=FastHolisticFPAnalysis(limit_i=-1, limit_p=-1, ceiling=True, fast=True)),
              InvslackCost(extractor, analysis=FastHolisticFPAnalysis(limit_i=-1, limit_p=-1, ceiling=False, fast=True)),
              InvslackCost(extractor, analysis=FastHolisticFPAnalysis(limit_i=1, limit_p=1, ceiling=False, fast=False)),
-             WorstFlowSlopeCost(extractor),
-             AvgSlopeCost(extractor),
+             InvslackCost(extractor, analysis=FastHolisticFPAnalysis(limit_i=-1, limit_p=-1, ceiling=True, fast=False)),
+             InvslackCost(extractor, analysis=FastHolisticFPAnalysis(limit_i=1, limit_p=1, ceiling=False, fast=True)),
              SumSlopeCost(extractor)]
 
     for ax, cost in zip(axs.flat, costs):
