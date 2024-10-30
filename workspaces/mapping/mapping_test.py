@@ -86,19 +86,19 @@ if __name__ == '__main__':
     initial_state = assignment.extract_assignment(system)
     a = time.perf_counter()
 
-    # # PD
-    # print("pd ", end="")
-    # assignment.insert_assignment(system, initial_state)
-    # pd = pd_fp(system)
-    # b = time.perf_counter()
-    # print(f"{pd} {b-a}")
-    #
-    # # GDPA MAPPING (sequential)
-    # print("gdpa seq ", end="")
-    # assignment.insert_assignment(system, initial_state)
-    # gdpa_seq = gdpa_pd_fp_mapping_sequential(system)
+    # PD
+    print("pd ", end="")
+    assignment.insert_assignment(system, initial_state)
+    pd = pd_fp(system)
+    b = time.perf_counter()
+    print(f"{pd} {b-a}")
+
+    # GDPA MAPPING (sequential)
+    print("gdpa seq ", end="")
+    assignment.insert_assignment(system, initial_state)
+    gdpa_seq = gdpa_pd_fp_mapping_sequential(system)
     c = time.perf_counter()
-    # print(f"{gdpa_seq} {c-b}")
+    print(f"{gdpa_seq} {c-b}")
 
     # GDPA MAPPING (vector)
     print("gdpa vec ", end="")

@@ -82,6 +82,6 @@ if __name__ == '__main__':
              ("EDF-L GDPA", edf_local_gdpa)]
 
     labels, funcs = zip(*tools)
-    runner = SchedRatioEval("edf_local_sigmoid", labels=labels, funcs=funcs,
-                            systems=systems, utilizations=utilizations, threads=6)
+    runner = SchedRatioEval("edf_local_sigmoid2", labels=labels, funcs=funcs,
+                            systems=systems, utilizations=utilizations, threads=8)
     runner.run()

@@ -85,6 +85,6 @@ if __name__ == '__main__':
              ("eqf", eqf_fp)]
 
     labels, funcs = zip(*tools)
-    runner = SchedRatioEval("test", labels=labels, funcs=funcs,
-                            systems=systems, utilizations=utilizations, threads=6)
+    runner = SchedRatioEval("test_2", labels=labels, funcs=funcs,
+                            systems=systems, utilizations=utilizations, threads=8)
     runner.run()

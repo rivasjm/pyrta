@@ -113,7 +113,7 @@ class DeadlineExtractor(Extractor):
 class PriorityExtractor(Extractor):
     def extract(self, system: System) -> [float]:
         max_priority = max(map(lambda t: t.priority, system.tasks))
-        r = [t.priority/max_priority for t in system.tasks]
+        r = [sigmoid(t.priority) for t in system.tasks]
         return r
 
     def insert(self, system: System, x: [float]):
