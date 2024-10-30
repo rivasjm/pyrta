@@ -65,10 +65,10 @@ def edf_local_gdpa(system: System) -> bool:
 if __name__ == '__main__':
     # create population of examples
     rnd = Random(42)
-    size = (3, 4, 3)  # flows, tasks, procs
+    size = (8, 8, 5)  # flows, tasks, procs
     n = 50
 
-    systems = examples.get_fast_systems(n, 1000, size, rnd, balanced=True, name="small",
+    systems = examples.get_fast_systems(n, 1000, size, rnd, balanced=True, name="medium",
                                         deadline_factor_min=0.5, sched=SchedulerType.EDF,
                                         deadline_factor_max=1)
 
@@ -82,6 +82,6 @@ if __name__ == '__main__':
              ("EDF-L GDPA", edf_local_gdpa)]
 
     labels, funcs = zip(*tools)
-    runner = SchedRatioEval("edf_local_sigmoid", labels=labels, funcs=funcs,
+    runner = SchedRatioEval("edf_local_big", labels=labels, funcs=funcs,
                             systems=systems, utilizations=utilizations, threads=6)
     runner.run()
