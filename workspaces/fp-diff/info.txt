@@ -1,0 +1,3 @@
+Study of the non differentiability of the Holistic FP analysis
+The objective is to find a differentiable function that can act as a proxy of the real analysis in an optimizacion loop
+The proxy must be correlated to the real analysis

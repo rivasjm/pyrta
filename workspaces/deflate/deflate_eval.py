@@ -34,6 +34,31 @@ def gdpa_pd_fp_vector(system: System) -> bool:
     return system.is_schedulable()
 
 
+def gdpa_pd_fp_vector_deflate(system: System) -> bool:
+    analysis = HolisticFPAnalysis(limit_factor=10, reset=False)
+    extractor = PriorityExtractor()
+    cost_function = InvslackCost(extractor=extractor, analysis=analysis)
+    stop_function = FixedIterationsStop(iterations=100)
+    delta_function = AvgSeparationDelta(factor=1.5)
+    batch_cost_function = VectorHolisticFPBatchCosts(PrioritiesMatrix())
+    gradient_function = StandardGradient(delta_function=delta_function,
+                                         batch_cost_function=batch_cost_function)
+    update_function = NoisyAdam()
+    optimizer = StandardGradientDescent(extractor=extractor,
+                                        cost_function=cost_function,
+                                        stop_function=stop_function,
+                                        gradient_function=gradient_function,
+                                        update_function=update_function,
+                                        verbose=False,
+                                        deflate=0.8)
+
+    pd = PDAssignment(normalize=True)
+    pd.apply(system)
+    optimizer.apply(system)
+    analysis.apply(system)
+    return system.is_schedulable()
+
+
 def pd_fp(system: System) -> bool:
     analysis = HolisticFPAnalysis(limit_factor=10, reset=False)
     pd = PDAssignment(normalize=True)
@@ -79,12 +104,13 @@ if __name__ == '__main__':
     utilizations = np.linspace(0.5, 0.9, 20)
 
     tools = [("gdpa", gdpa_pd_fp_vector),
+             ("gdpa_deflate", gdpa_pd_fp_vector_deflate),
              ("hopa", hopa_fp),
              ("pd", pd_fp),
              ("eqs", eqs_fp),
              ("eqf", eqf_fp)]
 
     labels, funcs = zip(*tools)
-    runner = SchedRatioEval("test_2", labels=labels, funcs=funcs,
-                            systems=systems, utilizations=utilizations, threads=8)
+    runner = SchedRatioEval("test", labels=labels, funcs=funcs,
+                            systems=systems, utilizations=utilizations, threads=6)
     runner.run()

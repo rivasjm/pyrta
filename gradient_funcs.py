@@ -5,6 +5,9 @@ class Reseteable():
     def reset(self):
         pass
 
+    def __repr__(self):
+        return type(self).__name__
+
 
 class GradientDescentFunction(Reseteable):
     """Class to perform Gradient Descent. Usually composed of building blocks such as Extractor, CostFunction, etc."""

@@ -1,3 +1,4 @@
+import generator
 from gradient_funcs import *
 from model import System
 import math
@@ -21,7 +22,8 @@ class StandardGradientDescent(GradientDescentFunction):
                  update_function: UpdateFunction,
                  ref_cost_function: CostFunction = None,    # secondary cost function for logging, not to optimize
                  callback=None,
-                 verbose=False):
+                 verbose=False,
+                 deflate=None):
         self.extractor = extractor
         self.cost_function = cost_function
         self.stop_function = stop_function
@@ -30,6 +32,7 @@ class StandardGradientDescent(GradientDescentFunction):
         self.ref_cost_function = ref_cost_function
         self.callback = callback
         self.verbose = verbose
+        self.deflate = deflate
 
     def reset(self):
         self.extractor.reset()
@@ -40,6 +43,10 @@ class StandardGradientDescent(GradientDescentFunction):
         self.ref_cost_function.reset()
 
     def apply(self, S: System) -> [float]:
+        wcets_backup = [t.wcet for t in S.tasks]
+        if self.deflate and self.deflate > 0:
+            generator.set_system_utilization(S, self.deflate)
+
         t = 1
         x = self.extractor.extract(S)  # initial input
         best = float('inf')     # best cost value, for logging purposes, not necessarily the cost of the solution
@@ -82,6 +89,10 @@ class StandardGradientDescent(GradientDescentFunction):
         if self.verbose:
             print(f"Returning solution with cost={self.stop_function.solution_cost():.3f}")
 
+        if self.deflate and self.deflate > 0:
+            for task, wcet in zip(S.tasks, wcets_backup):
+                task.wcet = wcet
+
         return solution
 
 
@@ -102,7 +113,7 @@ class DeadlineExtractor(Extractor):
 class PriorityExtractor(Extractor):
     def extract(self, system: System) -> [float]:
         max_priority = max(map(lambda t: t.priority, system.tasks))
-        r = [t.priority/max_priority for t in system.tasks]
+        r = [sigmoid(t.priority) for t in system.tasks]
         return r
 
     def insert(self, system: System, x: [float]):

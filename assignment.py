@@ -82,6 +82,9 @@ class PDAssignment:
         self.globalize = globalize
         self.exec_time = ExecTime()
 
+    def __call__(self, system: System) -> System:
+        return self.apply(system)
+
     def apply(self, system: System):
         self.exec_time.init()
         self.calculate_local_deadlines(system)
@@ -91,6 +94,7 @@ class PDAssignment:
         if self.normalize:
             normalize_priorities(system)
         self.exec_time.stop()
+        return system
 
     @staticmethod
     def calculate_local_deadlines(system):

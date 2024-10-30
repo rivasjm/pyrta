@@ -1,7 +1,6 @@
 from fast_analysis import func_w
 from gradient_funcs import CostFunction, Extractor
 from model import System, Task
-from assignment import save_assignment, restore_assignment
 from analysis import init_wcrt
 
 
