@@ -103,7 +103,7 @@ class DeadlineExtractor(Extractor):
 class PriorityExtractor(Extractor):
     def extract(self, system: System) -> [float]:
         max_priority = max(map(lambda t: t.priority, system.tasks))
-        r = [t.priority/max_priority for t in system.tasks]
+        r = [sigmoid(t.priority) for t in system.tasks]
         return r
 
     def insert(self, system: System, x: [float]):
@@ -360,3 +360,6 @@ class NoisyAdam(UpdateFunction):
         noisy_gradient = self.noise.apply(S, x, nabla, t)
         update = self.adam.apply(S, x, noisy_gradient, t)
         return update
+
+def sigmoid(x):
+    return 1 / (1 + math.exp(-x))
